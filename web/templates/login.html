@@ -1,0 +1,27 @@
+{{template "base.html" .}}
+{{define "title"}}登录 - IP Pool Monitor{{end}}
+{{define "content"}}
+<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div class="glass-card" style="width:100%;max-width:400px;">
+    <h2 style="margin:0 0 8px;font-size:24px;">IP Pool Monitor</h2>
+    <p class="section-hint" style="margin:0 0 24px;">请登录以继续</p>
+    {{if .Error}}
+    <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:12px;margin-bottom:16px;color:#f87171;font-size:14px;">
+      {{.Error}}
+    </div>
+    {{end}}
+    <form method="POST" action="/login">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">用户名</label>
+        <input class="form-input" type="text" name="username" required autofocus>
+      </div>
+      <div style="margin-bottom:24px;">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">密码</label>
+        <input class="form-input" type="password" name="password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%;padding:12px;">登录</button>
+    </form>
+  </div>
+</div>
+{{end}}
+{{define "scripts"}}{{end}}

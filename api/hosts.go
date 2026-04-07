@@ -1,0 +1,166 @@
+package api
+
+import (
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/L1ttlebear/ippool/database/dbcore"
+	"github.com/L1ttlebear/ippool/database/models"
+	"github.com/L1ttlebear/ippool/engine"
+)
+
+// GetHosts returns all hosts.
+func GetHosts(c *gin.Context) {
+	db := dbcore.GetDBInstance()
+	var hosts []models.Host
+	if err := db.Find(&hosts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, hosts)
+}
+
+// GetHost returns a single host by ID.
+func GetHost(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	db := dbcore.GetDBInstance()
+	var host models.Host
+	if err := db.First(&host, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "host not found"})
+		return
+	}
+	c.JSON(http.StatusOK, host)
+}
+
+// CreateHost creates a new host.
+func CreateHost(c *gin.Context) {
+	var host models.Host
+	if err := c.ShouldBindJSON(&host); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if net.ParseIP(host.IP) == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid IP address"})
+		return
+	}
+
+	if host.Pool == "" {
+		host.Pool = "default"
+	}
+	if host.SSHPort == 0 {
+		host.SSHPort = 22
+	}
+	host.State = models.StateReady
+
+	db := dbcore.GetDBInstance()
+	if err := db.Create(&host).Error; err != nil {
+		if isUniqueConstraintError(err) {
+			c.JSON(http.StatusConflict, gin.H{"error": "priority already exists in this pool"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, host)
+}
+
+// UpdateHost updates an existing host.
+func UpdateHost(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	db := dbcore.GetDBInstance()
+	var host models.Host
+	if err := db.First(&host, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "host not found"})
+		return
+	}
+
+	var updates models.Host
+	if err := c.ShouldBindJSON(&updates); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if updates.IP != "" && net.ParseIP(updates.IP) == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid IP address"})
+		return
+	}
+
+	if err := db.Model(&host).Updates(&updates).Error; err != nil {
+		if isUniqueConstraintError(err) {
+			c.JSON(http.StatusConflict, gin.H{"error": "priority already exists in this pool"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, host)
+}
+
+// DeleteHost removes a host.
+func DeleteHost(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	db := dbcore.GetDBInstance()
+	if err := db.Delete(&models.Host{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+}
+
+// SetHostState manually sets a host's state, bypassing the state machine.
+func SetHostState(sm *engine.StateMachine) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+			return
+		}
+
+		var body struct {
+			State string `json:"state"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		state := models.HostState(body.State)
+		if state != models.StateReady && state != models.StateFull && state != models.StateDead {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "state must be ready, full, or dead"})
+			return
+		}
+
+		db := dbcore.GetDBInstance()
+		if err := sm.ForceSet(db, uint(id), state); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "state updated"})
+	}
+}
+
+// isUniqueConstraintError detects UNIQUE constraint violations from SQLite.
+func isUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unique constraint") || strings.Contains(msg, "unique") || strings.Contains(msg, "duplicate")
+}

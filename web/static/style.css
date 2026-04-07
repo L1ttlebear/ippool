@@ -1,0 +1,123 @@
+/* 深色渐变背景 */
+body {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+}
+
+/* 毛玻璃卡片 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 24px;
+}
+
+/* 状态徽章 */
+.badge-ready { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
+.badge-full  { background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); }
+.badge-dead  { background: rgba(239, 68, 68, 0.2);  color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+/* 流量进度条 */
+.progress-bar { background: rgba(255,255,255,0.1); border-radius: 4px; height: 6px; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.progress-fill.ready { background: #4ade80; }
+.progress-fill.full  { background: #fb923c; }
+.progress-fill.dead  { background: #f87171; }
+
+/* 熔断告警横幅 */
+.circuit-banner {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: none;
+}
+.circuit-banner.active { display: flex; align-items: center; gap: 12px; }
+
+/* 导航栏 */
+.navbar {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 按钮 */
+.btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.btn-primary { background: rgba(99, 102, 241, 0.8); color: white; }
+.btn-primary:hover { background: rgba(99, 102, 241, 1); }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.4); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* 表单输入 */
+.form-input {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #e0e0e0;
+    padding: 10px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+.form-input:focus { outline: none; border-color: rgba(99, 102, 241, 0.6); }
+
+/* 主机卡片网格 */
+.host-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+/* 事件流 */
+.event-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }
+.event-time { color: rgba(255,255,255,0.4); font-size: 12px; }
+
+/* 模态框 */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; }
+.modal-overlay.active { display: flex; }
+.modal { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .host-grid { grid-template-columns: 1fr; }
+    .navbar { padding: 12px 16px; }
+}
+
+/* 状态变化动画 */
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; transition: all 0.3s ease; }
+.state-changed { animation: pulse 0.5s ease; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* 说明文字 */
+.section-hint { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 4px; }
+
+/* 容器 */
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+/* 表格 */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; padding: 10px 12px; color: rgba(255,255,255,0.5); font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+/* 链接 */
+a { color: rgba(99, 102, 241, 0.9); text-decoration: none; }
+a:hover { color: rgba(99, 102, 241, 1); }
+
+/* 分组标题 */
+.section-title { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+
+/* 间距工具 */
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-16 { margin-top: 16px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }

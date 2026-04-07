@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  ippool:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ippool_data:/data
+    environment:
+      - PORT=0.0.0.0:8080
+      - DB_PATH=/data/ippool.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  ippool_data:

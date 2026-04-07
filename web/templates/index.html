@@ -1,0 +1,99 @@
+{{template "base.html" .}}
+{{define "title"}}IP Pool Monitor{{end}}
+{{define "content"}}
+<!-- 导航栏 -->
+<nav class="navbar">
+  <span style="font-size:18px;font-weight:600;">IP Pool Monitor</span>
+  <div class="flex gap-12 items-center">
+    <a href="/settings">设置</a>
+    <a href="/logout" style="color:rgba(255,255,255,0.5);">退出登录</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- 系统状态栏 -->
+  <div class="glass-card mb-24">
+    <div class="flex justify-between items-center">
+      <div>
+        <div class="section-title">系统状态</div>
+        <div class="section-hint">当前正在承接流量的主机</div>
+      </div>
+      <div style="text-align:right;">
+        {{if .Leader}}
+        <div style="font-size:15px;font-weight:500;">Leader: <span id="leader-name">{{.Leader.Name}}</span> ({{.Leader.IP}})</div>
+        {{else}}
+        <div style="font-size:15px;font-weight:500;color:#f87171;">无可用 Leader</div>
+        {{end}}
+        {{if .Domain}}
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px;">域名: {{.Domain}}</div>
+        {{end}}
+        {{if .Leader}}
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;">
+          最后切换: {{.Leader.LastStateChange.Format "2006-01-02 15:04:05"}}
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  <!-- 熔断告警横幅 -->
+  <div class="circuit-banner mb-24{{if .CircuitOpen}} active{{end}}" id="circuit-banner">
+    <span style="font-size:20px;">⚠</span>
+    <div>
+      <div style="font-weight:600;color:#f87171;">熔断器已触发</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);">所有主机均不可用，请立即介入</div>
+    </div>
+  </div>
+
+  <!-- 主机卡片网格 -->
+  <div style="margin-bottom:8px;" class="flex justify-between items-center">
+    <div>
+      <div class="section-title">主机列表</div>
+      <div class="section-hint">主机池中所有受管主机的实时状态</div>
+    </div>
+  </div>
+  <div class="host-grid mb-24" id="host-grid">
+    {{range .Hosts}}
+    <div class="glass-card" id="host-card-{{.ID}}">
+      <div class="flex justify-between items-center mb-16">
+        <div>
+          <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
+        </div>
+        <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
+      </div>
+      {{if gt .TrafficThreshold 0}}
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">流量</div>
+        <div class="progress-bar">
+          <div class="progress-fill {{.State}}" style="width:50%;" id="progress-{{.ID}}"></div>
+        </div>
+      </div>
+      {{end}}
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
+    </div>
+    {{else}}
+    <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无主机，请前往<a href="/settings">设置</a>添加。</div>
+    {{end}}
+  </div>
+
+  <!-- 最近事件流 -->
+  <div class="glass-card">
+    <div class="section-title mb-16">最近事件</div>
+    <div class="section-hint" style="margin-bottom:16px;">系统最近的自动操作记录</div>
+    <div id="event-list">
+      {{range .RecentLogs}}
+      <div class="event-item">
+        <span class="event-time">{{.Time.ToTime.Format "2006-01-02 15:04:05"}}</span>
+        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[{{.MsgType}}]</span>
+        <span style="margin-left:8px;">{{.Message}}</span>
+      </div>
+      {{else}}
+      <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无事件记录</div>
+      {{end}}
+    </div>
+  </div>
+
+</div>
+{{end}}

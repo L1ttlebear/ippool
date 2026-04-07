@@ -1,0 +1,299 @@
+{{template "base.html" .}}
+{{define "title"}}设置 - IP Pool Monitor{{end}}
+{{define "content"}}
+<!-- 导航栏 -->
+<nav class="navbar">
+  <span style="font-size:18px;font-weight:600;"><a href="/" style="color:#e0e0e0;">IP Pool Monitor</a></span>
+  <div class="flex gap-12 items-center">
+    <a href="/">监控</a>
+    <a href="/logout" style="color:rgba(255,255,255,0.5);">退出登录</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- 主机管理 -->
+  <div class="glass-card mb-24">
+    <div class="flex justify-between items-center mb-16">
+      <div>
+        <div class="section-title">主机管理</div>
+        <div class="section-hint">管理主机池中的所有主机</div>
+      </div>
+      <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>名称</th><th>IP</th><th>状态</th><th>优先级</th><th>Pool</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Hosts}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td>{{.IP}}</td>
+          <td><span class="badge badge-{{.State}}">{{.State}}</span></td>
+          <td>{{.Priority}}</td>
+          <td>{{.Pool}}</td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="editHost({{.ID}})">编辑</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteHost({{.ID}}, '{{.Name}}')">删除</button>
+          </td>
+        </tr>
+        {{else}}
+        <tr><td colspan="6" style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;">暂无主机</td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DDNS 配置 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">DDNS 配置</div>
+    <div class="section-hint mb-16">Cloudflare DDNS 自动切换配置</div>
+    <form id="ddns-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">CF API Token</label>
+        <input class="form-input" type="password" name="cf_api_token" placeholder="留空保持不变"
+          value="{{index .Config "cf_api_token"}}">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Zone ID</label>
+        <input class="form-input" type="text" name="cf_zone_id" value="{{index .Config "cf_zone_id"}}">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Record Name</label>
+        <input class="form-input" type="text" name="cf_record_name" value="{{index .Config "cf_record_name"}}">
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveConfig('ddns-form', ['cf_api_token','cf_zone_id','cf_record_name'])">保存</button>
+    </form>
+  </div>
+
+  <!-- 通知配置 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">通知配置</div>
+    <div class="section-hint mb-16">状态变更和告警通知渠道</div>
+    <form id="notify-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Telegram Bot Token</label>
+        <input class="form-input" type="password" name="telegram_bot_token" placeholder="留空保持不变"
+          value="{{index .Config "telegram_bot_token"}}">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Chat ID</label>
+        <input class="form-input" type="text" name="telegram_chat_id" value="{{index .Config "telegram_chat_id"}}">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Webhook URL</label>
+        <input class="form-input" type="text" name="webhook_url" value="{{index .Config "webhook_url"}}">
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-primary" type="button" onclick="saveConfig('notify-form', ['telegram_bot_token','telegram_chat_id','webhook_url'])">保存</button>
+        <button class="btn btn-primary" type="button" onclick="testNotify()">测试通知</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 轮询参数 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">轮询参数</div>
+    <div class="section-hint mb-16">系统每隔多少秒检查一次主机状态</div>
+    <form id="poll-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">轮询间隔（秒，最小 10）</label>
+        <input class="form-input" type="number" name="poll_interval" min="10"
+          value="{{index .Config "poll_interval"}}" style="max-width:200px;">
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveConfig('poll-form', ['poll_interval'])">保存</button>
+    </form>
+  </div>
+
+  <!-- 账号安全 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">账号安全</div>
+    <div class="section-hint mb-16">修改管理员登录密码</div>
+    <form id="passwd-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">旧密码</label>
+        <input class="form-input" type="password" name="old_password" style="max-width:320px;">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">新密码</label>
+        <input class="form-input" type="password" name="new_password" style="max-width:320px;">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">确认新密码</label>
+        <input class="form-input" type="password" name="confirm_password" style="max-width:320px;">
+      </div>
+      <button class="btn btn-primary" type="button" onclick="changePassword()">保存</button>
+    </form>
+    <div id="passwd-msg" style="margin-top:12px;font-size:14px;"></div>
+  </div>
+
+</div>
+
+<!-- 添加/编辑主机模态框 -->
+<div class="modal-overlay" id="host-modal">
+  <div class="modal">
+    <h3 style="margin:0 0 24px;" id="modal-title">添加主机</h3>
+    <input type="hidden" id="host-id">
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">名称</label>
+      <input class="form-input" type="text" id="host-name">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">IP 地址</label>
+      <input class="form-input" type="text" id="host-ip">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">SSH 端口</label>
+      <input class="form-input" type="number" id="host-ssh-port" value="22">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">SSH 用户名</label>
+      <input class="form-input" type="text" id="host-ssh-user">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">SSH 密码</label>
+      <input class="form-input" type="password" id="host-ssh-password">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">优先级（数字越小越优先）</label>
+      <input class="form-input" type="number" id="host-priority" value="1">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Pool</label>
+      <input class="form-input" type="text" id="host-pool" value="default">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">流量阈值（字节，0=不限制）</label>
+      <input class="form-input" type="number" id="host-traffic-threshold" value="0">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">前置命令（Shell 命令或 HTTP URL）</label>
+      <input class="form-input" type="text" id="host-pre-command">
+    </div>
+    <div id="host-modal-error" style="color:#f87171;font-size:13px;margin-bottom:12px;display:none;"></div>
+    <div class="flex gap-8">
+      <button class="btn btn-primary" onclick="saveHost()">保存</button>
+      <button class="btn" style="background:rgba(255,255,255,0.1);color:#e0e0e0;" onclick="closeHostModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+{{end}}
+{{define "scripts"}}
+<script>
+function openAddHostModal() {
+  document.getElementById('modal-title').textContent = '添加主机';
+  document.getElementById('host-id').value = '';
+  document.getElementById('host-name').value = '';
+  document.getElementById('host-ip').value = '';
+  document.getElementById('host-ssh-port').value = '22';
+  document.getElementById('host-ssh-user').value = '';
+  document.getElementById('host-ssh-password').value = '';
+  document.getElementById('host-priority').value = '1';
+  document.getElementById('host-pool').value = 'default';
+  document.getElementById('host-traffic-threshold').value = '0';
+  document.getElementById('host-pre-command').value = '';
+  document.getElementById('host-modal-error').style.display = 'none';
+  document.getElementById('host-modal').classList.add('active');
+}
+
+function closeHostModal() {
+  document.getElementById('host-modal').classList.remove('active');
+}
+
+async function editHost(id) {
+  const resp = await fetch('/api/hosts/' + id);
+  if (!resp.ok) return alert('获取主机信息失败');
+  const h = await resp.json();
+  document.getElementById('modal-title').textContent = '编辑主机';
+  document.getElementById('host-id').value = h.id;
+  document.getElementById('host-name').value = h.name;
+  document.getElementById('host-ip').value = h.ip;
+  document.getElementById('host-ssh-port').value = h.ssh_port;
+  document.getElementById('host-ssh-user').value = h.ssh_user;
+  document.getElementById('host-ssh-password').value = '';
+  document.getElementById('host-priority').value = h.priority;
+  document.getElementById('host-pool').value = h.pool;
+  document.getElementById('host-traffic-threshold').value = h.traffic_threshold;
+  document.getElementById('host-pre-command').value = h.pre_command;
+  document.getElementById('host-modal-error').style.display = 'none';
+  document.getElementById('host-modal').classList.add('active');
+}
+
+async function saveHost() {
+  const id = document.getElementById('host-id').value;
+  const body = {
+    name: document.getElementById('host-name').value,
+    ip: document.getElementById('host-ip').value,
+    ssh_port: parseInt(document.getElementById('host-ssh-port').value) || 22,
+    ssh_user: document.getElementById('host-ssh-user').value,
+    ssh_password: document.getElementById('host-ssh-password').value,
+    priority: parseInt(document.getElementById('host-priority').value) || 1,
+    pool: document.getElementById('host-pool').value || 'default',
+    traffic_threshold: parseInt(document.getElementById('host-traffic-threshold').value) || 0,
+    pre_command: document.getElementById('host-pre-command').value,
+  };
+  const url = id ? '/api/hosts/' + id : '/api/hosts';
+  const method = id ? 'PUT' : 'POST';
+  const resp = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const errEl = document.getElementById('host-modal-error');
+    errEl.textContent = data.error || '保存失败';
+    errEl.style.display = 'block';
+    return;
+  }
+  closeHostModal();
+  location.reload();
+}
+
+async function deleteHost(id, name) {
+  if (!confirm('确认删除主机 ' + name + '？')) return;
+  const resp = await fetch('/api/hosts/' + id, { method: 'DELETE' });
+  if (resp.ok) location.reload();
+  else alert('删除失败');
+}
+
+async function saveConfig(formId, keys) {
+  const form = document.getElementById(formId);
+  const body = {};
+  keys.forEach(k => {
+    const el = form.querySelector('[name="' + k + '"]');
+    if (el && el.value !== '') {
+      const v = el.type === 'number' ? Number(el.value) : el.value;
+      body[k] = v;
+    }
+  });
+  const resp = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await resp.json();
+  if (resp.ok) alert('保存成功');
+  else alert('保存失败: ' + (data.error || ''));
+}
+
+async function testNotify() {
+  const resp = await fetch('/api/notify/test', { method: 'POST' });
+  const data = await resp.json();
+  alert(resp.ok ? '测试通知已发送' : '发送失败: ' + (data.error || ''));
+}
+
+async function changePassword() {
+  const oldPw = document.querySelector('#passwd-form [name="old_password"]').value;
+  const newPw = document.querySelector('#passwd-form [name="new_password"]').value;
+  const confirmPw = document.querySelector('#passwd-form [name="confirm_password"]').value;
+  const msgEl = document.getElementById('passwd-msg');
+  if (newPw !== confirmPw) { msgEl.style.color='#f87171'; msgEl.textContent='两次密码不一致'; return; }
+  if (newPw.length < 6) { msgEl.style.color='#f87171'; msgEl.textContent='密码至少6位'; return; }
+  const resp = await fetch('/api/account/password', {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+  });
+  const data = await resp.json();
+  if (resp.ok) { msgEl.style.color='#4ade80'; msgEl.textContent='密码修改成功'; }
+  else { msgEl.style.color='#f87171'; msgEl.textContent = data.error || '修改失败'; }
+}
+</script>
+{{end}}
