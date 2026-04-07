@@ -13,12 +13,6 @@ import (
 //go:embed templates/* static/*
 var FS embed.FS
 
-var tmpl *template.Template
-
-func init() {
-	tmpl = template.Must(template.ParseFS(FS, "templates/*.html"))
-}
-
 // IndexPageData is the data passed to the index template.
 type IndexPageData struct {
 	Leader          *models.Host
@@ -41,10 +35,17 @@ type LoginPageData struct {
 	Error string
 }
 
+// newTmpl creates an isolated template set for a specific page.
+// Each page gets its own set so {{define "content"}} blocks don't overwrite each other.
+func newTmpl(page string) *template.Template {
+	return template.Must(template.ParseFS(FS, "templates/base.html", "templates/"+page))
+}
+
 // RenderIndex renders the index page.
 func RenderIndex(c *gin.Context, data IndexPageData) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(c.Writer, "index.html", data); err != nil {
+	t := newTmpl("index.html")
+	if err := t.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
 		c.String(http.StatusInternalServerError, "template error: %v", err)
 	}
 }
@@ -52,7 +53,8 @@ func RenderIndex(c *gin.Context, data IndexPageData) {
 // RenderSettings renders the settings page.
 func RenderSettings(c *gin.Context, data SettingsPageData) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(c.Writer, "settings.html", data); err != nil {
+	t := newTmpl("settings.html")
+	if err := t.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
 		c.String(http.StatusInternalServerError, "template error: %v", err)
 	}
 }
@@ -60,7 +62,8 @@ func RenderSettings(c *gin.Context, data SettingsPageData) {
 // RenderLogin renders the login page.
 func RenderLogin(c *gin.Context, data LoginPageData) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(c.Writer, "login.html", data); err != nil {
+	t := newTmpl("login.html")
+	if err := t.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
 		c.String(http.StatusInternalServerError, "template error: %v", err)
 	}
 }
