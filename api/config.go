@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -69,9 +70,94 @@ func UpdateConfig(c *gin.Context) {
 		}
 	}
 
+	if rulesRaw, ok := updates[config.DDNSPoolRulesKey]; ok {
+		rules, err := normalizeDDNSRules(rulesRaw)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		updates[config.DDNSPoolRulesKey] = rules
+	}
+
 	if err := config.SetMany(updates); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "config updated"})
+}
+
+func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
+	arr, ok := raw.([]any)
+	if !ok {
+		// 兼容前端直接传 []map / []struct 的情况
+		if typed, ok2 := raw.([]config.DdnsPoolRule); ok2 {
+			arr = make([]any, 0, len(typed))
+			for _, r := range typed {
+				arr = append(arr, map[string]any{
+					"pool":         r.Pool,
+					"cf_api_token": r.CFApiToken,
+					"cf_zone_id":   r.CFZoneID,
+					"record_name":  r.RecordName,
+					"enabled":      r.Enabled,
+				})
+			}
+		} else {
+			return nil, fmt.Errorf("ddns_pool_rules must be an array")
+		}
+	}
+
+	seenPool := map[string]struct{}{}
+	seenDomain := map[string]struct{}{}
+	result := make([]config.DdnsPoolRule, 0, len(arr))
+	for i, item := range arr {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("ddns_pool_rules[%d] must be an object", i)
+		}
+
+		pool := strings.TrimSpace(anyToString(m["pool"]))
+		token := strings.TrimSpace(anyToString(m["cf_api_token"]))
+		zone := strings.TrimSpace(anyToString(m["cf_zone_id"]))
+		record := strings.TrimSpace(anyToString(m["record_name"]))
+		enabled := anyToBool(m["enabled"], true)
+
+		if pool == "" {
+			return nil, fmt.Errorf("ddns_pool_rules[%d].pool is required", i)
+		}
+		if _, exists := seenPool[pool]; exists {
+			return nil, fmt.Errorf("pool %q duplicated in ddns_pool_rules; one pool can only map to one domain", pool)
+		}
+		seenPool[pool] = struct{}{}
+
+		if record != "" {
+			if _, exists := seenDomain[record]; exists {
+				return nil, fmt.Errorf("domain %q duplicated in ddns_pool_rules", record)
+			}
+			seenDomain[record] = struct{}{}
+		}
+
+		result = append(result, config.DdnsPoolRule{
+			Pool:       pool,
+			CFApiToken: token,
+			CFZoneID:   zone,
+			RecordName: record,
+			Enabled:    enabled,
+		})
+	}
+	return result, nil
+}
+
+func anyToString(v any) string {
+	s, _ := v.(string)
+	return s
+}
+
+func anyToBool(v any, def bool) bool {
+	if v == nil {
+		return def
+	}
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	return def
 }
