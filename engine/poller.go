@@ -130,8 +130,16 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 	currentLeaderID, _ := config.GetAs[uint](config.CurrentLeaderIDKey, uint(0))
 	retryHosts := hosts
 
+	reachability := make(map[uint]bool, len(results))
+	for _, r := range results {
+		reachability[r.HostID] = r.Reachable && r.SSHReachable
+	}
+
 	for attempt := 0; attempt < maxElectRetries; attempt++ {
 		electionResult := Elect(retryHosts, currentLeaderID)
+		if electionResult.PrevLeader != nil {
+			electionResult.PrevReachable = reachability[electionResult.PrevLeader.ID]
+		}
 
 		if electionResult.Leader == nil {
 			p.cb.Check(retryHosts)
@@ -144,6 +152,16 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 
 		if !electionResult.Changed {
 			break
+		}
+
+		if electionResult.PrevLeader != nil && electionResult.PrevReachable {
+			disconnectResult := p.exec.ExecuteDisconnect(*electionResult.PrevLeader)
+			if disconnectResult.ExitCode != 0 {
+				slog.Warn("poller: disconnect command failed on previous leader",
+					"host_id", electionResult.PrevLeader.ID,
+					"exit_code", disconnectResult.ExitCode,
+				)
+			}
 		}
 
 		execResult := p.exec.Execute(*electionResult.Leader)

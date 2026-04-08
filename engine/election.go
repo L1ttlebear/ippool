@@ -10,9 +10,10 @@ import (
 
 // ElectionResult holds the outcome of a leader election round.
 type ElectionResult struct {
-	Leader     *models.Host
-	Changed    bool
-	PrevLeader *models.Host
+	Leader       *models.Host
+	Changed      bool
+	PrevLeader   *models.Host
+	PrevReachable bool
 }
 
 // Elect selects the Ready host with the lowest Priority as leader.

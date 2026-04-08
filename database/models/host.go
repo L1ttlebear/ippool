@@ -21,7 +21,8 @@ type Host struct {
 	Priority         int       `json:"priority" gorm:"not null;uniqueIndex:idx_pool_priority"`
 	Pool             string    `json:"pool" gorm:"type:varchar(100);not null;uniqueIndex:idx_pool_priority;default:'default'"`
 	TrafficThreshold int64     `json:"traffic_threshold" gorm:"type:bigint;default:0"`
-	PreCommand       string    `json:"pre_command" gorm:"type:text"`
+	PreCommand       string    `json:"pre_command" gorm:"type:text"` // 连接命令
+	DisconnectCommand string   `json:"disconnect_command" gorm:"type:text"` // 弃用连接命令
 	State            HostState `json:"state" gorm:"type:varchar(20);default:'ready'"`
 	LastStateChange  time.Time `json:"last_state_change"`
 	IsLeader         bool      `json:"is_leader" gorm:"default:false"`

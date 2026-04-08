@@ -44,32 +44,42 @@ func NewCommandExecutor(maxConcurrency int) *CommandExecutor {
 	}
 }
 
-// Execute runs the host's PreCommand, respecting semaphore limits.
+// Execute runs the host's PreCommand (连接命令), respecting semaphore limits.
 func (e *CommandExecutor) Execute(host models.Host) ExecResult {
+	return e.ExecuteCommand(host, host.PreCommand, "连接命令")
+}
+
+// ExecuteDisconnect runs the host's DisconnectCommand (弃用连接命令).
+func (e *CommandExecutor) ExecuteDisconnect(host models.Host) ExecResult {
+	return e.ExecuteCommand(host, host.DisconnectCommand, "弃用连接")
+}
+
+// ExecuteCommand runs a specific command on the target host.
+func (e *CommandExecutor) ExecuteCommand(host models.Host, command, label string) ExecResult {
 	e.sem <- struct{}{}
 	defer func() { <-e.sem }()
 
 	start := time.Now()
 	var result ExecResult
 
-	if host.PreCommand == "" {
+	if strings.TrimSpace(command) == "" {
 		result.Duration = time.Since(start)
-		auditlog.EventLog("exec", fmt.Sprintf("host %d (%s): no pre-command configured", host.ID, host.Name))
+		auditlog.EventLog("exec", fmt.Sprintf("host %d (%s): no %s command configured", host.ID, host.Name, label))
 		return result
 	}
 
 	// HTTP(S) URL - use GET request instead of SSH
-	if strings.HasPrefix(host.PreCommand, "http://") || strings.HasPrefix(host.PreCommand, "https://") {
-		result = e.execHTTP(host.PreCommand)
+	if strings.HasPrefix(command, "http://") || strings.HasPrefix(command, "https://") {
+		result = e.execHTTP(command)
 	} else {
-		result = e.execSSH(host)
+		result = e.execSSH(host, command)
 	}
 
 	result.Duration = time.Since(start)
 
 	auditlog.EventLog("exec", fmt.Sprintf(
-		"host %d (%s): exit=%d duration=%s stdout=%q stderr=%q err=%v",
-		host.ID, host.Name, result.ExitCode, result.Duration, result.Stdout, result.Stderr, result.Error,
+		"host %d (%s) [%s]: exit=%d duration=%s stdout=%q stderr=%q err=%v",
+		host.ID, host.Name, label, result.ExitCode, result.Duration, result.Stdout, result.Stderr, result.Error,
 	))
 
 	return result
@@ -101,7 +111,7 @@ func (e *CommandExecutor) execHTTP(url string) ExecResult {
 	}
 }
 
-func (e *CommandExecutor) execSSH(host models.Host) ExecResult {
+func (e *CommandExecutor) execSSH(host models.Host, command string) ExecResult {
 	ctx, cancel := context.WithTimeout(context.Background(), sshConnectTimeout)
 	defer cancel()
 
@@ -141,7 +151,7 @@ func (e *CommandExecutor) execSSH(host models.Host) ExecResult {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- session.Run(host.PreCommand)
+		done <- session.Run(command)
 	}()
 
 	select {

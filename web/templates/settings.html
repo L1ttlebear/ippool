@@ -196,8 +196,12 @@
       <input class="form-input" type="number" id="host-traffic-threshold" value="0">
     </div>
     <div class="mb-16">
-      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">前置命令（Shell 命令或 HTTP URL）</label>
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">连接命令（原前置命令，Shell 命令或 HTTP URL）</label>
       <input class="form-input" type="text" id="host-pre-command">
+    </div>
+    <div class="mb-16">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">弃用连接命令（切换时先在旧主机执行）</label>
+      <input class="form-input" type="text" id="host-disconnect-command">
     </div>
     <div id="host-modal-error" style="color:#f87171;font-size:13px;margin-bottom:12px;display:none;"></div>
     <div class="flex gap-8">
@@ -222,6 +226,7 @@ function openAddHostModal() {
   document.getElementById('host-pool').value = 'default';
   document.getElementById('host-traffic-threshold').value = '0';
   document.getElementById('host-pre-command').value = '';
+  document.getElementById('host-disconnect-command').value = '';
   document.getElementById('host-modal-error').style.display = 'none';
   document.getElementById('host-modal').classList.add('active');
 }
@@ -245,6 +250,7 @@ async function editHost(id) {
   document.getElementById('host-pool').value = h.pool;
   document.getElementById('host-traffic-threshold').value = h.traffic_threshold;
   document.getElementById('host-pre-command').value = h.pre_command;
+  document.getElementById('host-disconnect-command').value = h.disconnect_command || '';
   document.getElementById('host-modal-error').style.display = 'none';
   document.getElementById('host-modal').classList.add('active');
 }
@@ -261,6 +267,7 @@ async function saveHost() {
     pool: document.getElementById('host-pool').value || 'default',
     traffic_threshold: parseInt(document.getElementById('host-traffic-threshold').value) || 0,
     pre_command: document.getElementById('host-pre-command').value,
+    disconnect_command: document.getElementById('host-disconnect-command').value,
   };
   const url = id ? '/api/hosts/' + id : '/api/hosts';
   const method = id ? 'PUT' : 'POST';
