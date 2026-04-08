@@ -5,14 +5,19 @@
   <div class="nav-left">
     <span class="brand">IP Pool Monitor</span>
   </div>
-  <div class="nav-right">
-    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切换主题">🌙</button>
-    <a class="nav-link" href="/settings">设置</a>
-    <a class="nav-link nav-link-muted" href="/logout">退出登录</a>
-  </div>
 </nav>
 
 <div class="container">
+  <div class="settings-layout">
+    <aside class="glass-card side-menu">
+      <div class="side-menu-title">导航</div>
+      <button id="theme-toggle" class="theme-toggle side-menu-btn" type="button" aria-label="切换主题">🌙</button>
+      <a class="nav-link side-menu-link" href="/">监控</a>
+      <a class="nav-link side-menu-link" href="/settings">设置</a>
+      <a class="nav-link nav-link-muted side-menu-link" href="/logout">退出登录</a>
+    </aside>
+
+    <div class="settings-main">
 
   <!-- 系统状态栏 -->
   <div class="glass-card mb-24">
@@ -115,5 +120,7 @@
     </div>
   </div>
 
+    </div>
+  </div>
 </div>
 {{end}}
