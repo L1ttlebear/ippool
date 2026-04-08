@@ -2,6 +2,27 @@
 let ws;
 let reconnectTimer;
 
+const EVENT_TYPE_ZH = {
+    state_change: '状态变更',
+    leader_changed: '主机切换',
+    circuit_open: '熔断触发',
+    circuit_close: '熔断恢复',
+    ddns_update: 'DDNS 更新',
+    ddns_match: 'DDNS 校验',
+    ddns_mismatch: 'DDNS 异常',
+    exec: '执行结果',
+    test: '测试通知',
+};
+
+function eventTypeZh(type) {
+    return EVENT_TYPE_ZH[type] || type || '事件';
+}
+
+function stateZh(s) {
+    const m = { ready: '可用', full: '满载', dead: '不可用' };
+    return m[s] || s || '-';
+}
+
 function connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -35,10 +56,6 @@ function handleSnapshot(data) {
             const t = data.traffic && data.traffic[h.id] ? data.traffic[h.id] : null;
             updateHostTraffic(h.id, h.traffic_threshold, t);
         });
-    }
-    if (data.leader_id) {
-        const leaderEl = document.getElementById('leader-name');
-        // leader name update requires full host data; skip if not available
     }
 }
 
@@ -108,20 +125,43 @@ function updateHostTraffic(hostId, trafficThreshold, traffic) {
         ? Number(traffic.out) || 0
         : Number(meta.getAttribute('data-traffic-out')) || 0;
 
+    const sshReachable = traffic && typeof traffic.ssh_reachable !== 'undefined'
+        ? !!traffic.ssh_reachable
+        : meta.getAttribute('data-ssh-reachable') === 'true';
+    const sshError = traffic && typeof traffic.ssh_error !== 'undefined'
+        ? String(traffic.ssh_error || '')
+        : String(meta.getAttribute('data-ssh-error') || '');
+    const netIface = traffic && typeof traffic.net_iface !== 'undefined'
+        ? String(traffic.net_iface || '')
+        : String(meta.getAttribute('data-net-iface') || '');
+
     // Persist latest values for future incremental updates
     meta.setAttribute('data-traffic-threshold', String(threshold));
     meta.setAttribute('data-traffic-in', String(inBytes));
     meta.setAttribute('data-traffic-out', String(outBytes));
+    meta.setAttribute('data-ssh-reachable', String(sshReachable));
+    meta.setAttribute('data-ssh-error', sshError);
+    meta.setAttribute('data-net-iface', netIface);
 
     const inEl = document.getElementById('traffic-in-' + hostId);
     const outEl = document.getElementById('traffic-out-' + hostId);
     const usedEl = document.getElementById('traffic-used-' + hostId);
     const thrEl = document.getElementById('traffic-threshold-' + hostId);
+    const sshEl = document.getElementById('ssh-status-' + hostId);
+    const ifaceEl = document.getElementById('traffic-iface-' + hostId);
 
     if (inEl) inEl.textContent = fmtBytes(inBytes);
     if (outEl) outEl.textContent = fmtBytes(outBytes);
     if (usedEl) usedEl.textContent = fmtBytes(Math.max(inBytes, outBytes));
     if (thrEl) thrEl.textContent = fmtBytes(threshold);
+
+    if (sshEl) {
+        sshEl.textContent = sshReachable ? '可连接' : `失败${sshError ? ` (${sshError})` : ''}`;
+        sshEl.style.color = sshReachable ? '#4ade80' : '#f87171';
+    }
+    if (ifaceEl) {
+        ifaceEl.textContent = netIface || '-';
+    }
 
     const progress = document.getElementById('progress-' + hostId);
     if (progress && threshold > 0) {
@@ -168,8 +208,8 @@ function prependEvent(data) {
     item.className = 'event-item';
     const time = data.time ? new Date(data.time).toLocaleString('zh-CN') : new Date().toLocaleString('zh-CN');
     item.innerHTML = `<span class="event-time">${time}</span>
-        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[state_change]</span>
-        <span style="margin-left:8px;">host ${data.host_id}: ${data.old_state} → ${data.new_state}</span>`;
+        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[${eventTypeZh('state_change')}]</span>
+        <span style="margin-left:8px;">主机 ${data.host_id}: ${stateZh(data.old_state)} → ${stateZh(data.new_state)}</span>`;
     list.insertBefore(item, list.firstChild);
     // Keep at most 20 items
     while (list.children.length > 20) {

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,9 +16,12 @@ var FS embed.FS
 
 // HostTrafficInfo holds traffic stats for a single host for display.
 type HostTrafficInfo struct {
-	HostID    uint
-	TrafficIn int64 // bytes received (cumulative)
-	TrafficOut int64 // bytes sent (cumulative)
+	HostID       uint
+	TrafficIn    int64 // bytes received (cumulative)
+	TrafficOut   int64 // bytes sent (cumulative)
+	SSHReachable bool
+	SSHError     string
+	NetIface     string
 }
 
 // IndexPageData is the data passed to the index template.
@@ -31,7 +35,7 @@ type IndexPageData struct {
 	LastPoll        time.Time
 	CurrentLeaderID uint
 	// TrafficMap maps host ID -> latest traffic check result
-	TrafficMap      map[uint]HostTrafficInfo
+	TrafficMap map[uint]HostTrafficInfo
 }
 
 // SettingsPageData is the data passed to the settings template.
@@ -45,10 +49,62 @@ type LoginPageData struct {
 	Error string
 }
 
+var eventTypeText = map[string]string{
+	"state_change":  "状态变更",
+	"leader_changed": "主机切换",
+	"circuit_open":  "熔断触发",
+	"circuit_close": "熔断恢复",
+	"ddns_update":   "DDNS 更新",
+	"ddns_match":    "DDNS 校验",
+	"ddns_mismatch": "DDNS 异常",
+	"exec":          "执行结果",
+	"test":          "测试通知",
+}
+
+func eventTypeZh(t string) string {
+	if v, ok := eventTypeText[t]; ok {
+		return v
+	}
+	if t == "" {
+		return "事件"
+	}
+	return t
+}
+
+func eventMessageZh(msgType, message string) string {
+	m := strings.TrimSpace(message)
+	if m == "" {
+		return "-"
+	}
+
+	replacer := strings.NewReplacer(
+		"leader changed", "主机切换",
+		"circuit breaker opened", "熔断器已触发",
+		"circuit breaker closed", "熔断器已恢复",
+		"all hosts are Full or Dead", "所有主机均为满载或不可用",
+		"pre-command failed", "前置命令执行失败",
+		"no pre-command configured", "未配置前置命令",
+		"DDNS updated", "DDNS 已更新",
+		"DDNS update failed", "DDNS 更新失败",
+	)
+	m = replacer.Replace(m)
+
+	if msgType == "state_change" {
+		m = strings.ReplaceAll(m, "ready", "可用")
+		m = strings.ReplaceAll(m, "full", "满载")
+		m = strings.ReplaceAll(m, "dead", "不可用")
+	}
+	return m
+}
+
 // newTmpl creates an isolated template set for a specific page.
 // Each page gets its own set so {{define "content"}} blocks don't overwrite each other.
 func newTmpl(page string) *template.Template {
-	return template.Must(template.ParseFS(FS, "templates/base.html", "templates/"+page))
+	funcs := template.FuncMap{
+		"eventTypeZh":    eventTypeZh,
+		"eventMessageZh": eventMessageZh,
+	}
+	return template.Must(template.New("base.html").Funcs(funcs).ParseFS(FS, "templates/base.html", "templates/"+page))
 }
 
 // RenderIndex renders the index page.
@@ -85,3 +141,4 @@ func StaticHandler() gin.HandlerFunc {
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	}
 }
+

@@ -22,12 +22,15 @@ const (
 
 // CheckResult holds the result of a single host health check.
 type CheckResult struct {
-	HostID     uint
-	Reachable  bool
-	LatencyMs  int64
-	TrafficIn  int64
-	TrafficOut int64
-	Error      string
+	HostID       uint
+	Reachable    bool
+	LatencyMs    int64
+	SSHReachable bool
+	SSHError     string
+	NetIface     string
+	TrafficIn    int64
+	TrafficOut   int64
+	Error        string
 }
 
 // HealthChecker performs concurrent health checks on hosts.
@@ -68,13 +71,16 @@ func (hc *HealthChecker) CheckAll(hosts []models.Host) []CheckResult {
 		now := time.Now()
 		for i, r := range results {
 			records[i] = models.CheckRecord{
-				HostID:     r.HostID,
-				Time:       now,
-				Reachable:  r.Reachable,
-				LatencyMs:  r.LatencyMs,
-				TrafficIn:  r.TrafficIn,
-				TrafficOut: r.TrafficOut,
-				Error:      r.Error,
+				HostID:       r.HostID,
+				Time:         now,
+				Reachable:    r.Reachable,
+				LatencyMs:    r.LatencyMs,
+				SSHReachable: r.SSHReachable,
+				SSHError:     r.SSHError,
+				NetIface:     r.NetIface,
+				TrafficIn:    r.TrafficIn,
+				TrafficOut:   r.TrafficOut,
+				Error:        r.Error,
 			}
 		}
 		hc.db.Create(&records)
@@ -92,10 +98,15 @@ func (hc *HealthChecker) checkOne(host models.Host) CheckResult {
 	}
 
 	if result.Reachable {
-		in, out, err := hc.checkTraffic(host)
+		iface, in, out, err := hc.checkTraffic(host)
 		if err == nil {
+			result.SSHReachable = true
+			result.NetIface = iface
 			result.TrafficIn = in
 			result.TrafficOut = out
+		} else {
+			result.SSHReachable = false
+			result.SSHError = err.Error()
 		}
 	}
 
@@ -125,30 +136,30 @@ func (hc *HealthChecker) tcpCheck(host models.Host) CheckResult {
 	}
 }
 
-// checkTraffic reads /proc/net/dev via SSH and returns cumulative bytes for the first non-lo interface.
-func (hc *HealthChecker) checkTraffic(host models.Host) (in, out int64, err error) {
+// checkTraffic reads /proc/net/dev via SSH and returns cumulative bytes for the default non-lo interface.
+func (hc *HealthChecker) checkTraffic(host models.Host) (iface string, in, out int64, err error) {
 	client, err := dialSSH(host, 30*time.Second)
 	if err != nil {
-		return 0, 0, fmt.Errorf("ssh dial failed: %w", err)
+		return "", 0, 0, fmt.Errorf("ssh dial failed: %w", err)
 	}
 	defer client.Close()
 
 	session, err := client.NewSession()
 	if err != nil {
-		return 0, 0, fmt.Errorf("ssh new session failed: %w", err)
+		return "", 0, 0, fmt.Errorf("ssh new session failed: %w", err)
 	}
 	defer session.Close()
 
 	out2, err := session.Output("cat /proc/net/dev")
 	if err != nil {
-		return 0, 0, fmt.Errorf("cat /proc/net/dev failed: %w", err)
+		return "", 0, 0, fmt.Errorf("cat /proc/net/dev failed: %w", err)
 	}
 
 	return parseNetDev(string(out2))
 }
 
 // parseNetDev parses /proc/net/dev output and returns bytes for the first non-lo interface.
-func parseNetDev(content string) (in, out int64, err error) {
+func parseNetDev(content string) (iface string, in, out int64, err error) {
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	// Skip header lines (first 2)
 	lineNum := 0
@@ -176,9 +187,9 @@ func parseNetDev(content string) (in, out int64, err error) {
 		if e1 != nil || e2 != nil {
 			continue
 		}
-		return rxBytes, txBytes, nil
+		return iface, rxBytes, txBytes, nil
 	}
-	return 0, 0, fmt.Errorf("no suitable network interface found in /proc/net/dev")
+	return "", 0, 0, fmt.Errorf("no suitable network interface found in /proc/net/dev")
 }
 
 // dialSSH establishes an SSH connection to the host.

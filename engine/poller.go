@@ -227,11 +227,14 @@ func (p *Poller) broadcastSummary(hosts []models.Host, results []CheckResult) {
 
 	leaderID, _ := config.GetAs[uint](config.CurrentLeaderIDKey, uint(0))
 
-	trafficMap := make(map[uint]map[string]int64, len(results))
+	trafficMap := make(map[uint]map[string]any, len(results))
 	for _, r := range results {
-		trafficMap[r.HostID] = map[string]int64{
-			"in":  r.TrafficIn,
-			"out": r.TrafficOut,
+		trafficMap[r.HostID] = map[string]any{
+			"in":            r.TrafficIn,
+			"out":           r.TrafficOut,
+			"ssh_reachable": r.SSHReachable,
+			"ssh_error":     r.SSHError,
+			"net_iface":     r.NetIface,
 		}
 	}
 

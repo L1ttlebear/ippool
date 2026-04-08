@@ -65,26 +65,32 @@
         </div>
         <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
       </div>
-      {{if gt .TrafficThreshold 0}}
       <div style="margin-bottom:12px;">
-        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">流量</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
         <div class="progress-bar">
-          <div class="progress-fill {{.State}}" style="width:50%;" id="progress-{{.ID}}"></div>
+          <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
         </div>
-        <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.4;"
+        <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
              data-traffic-threshold="{{.TrafficThreshold}}"
              {{with (index $.TrafficMap .ID)}}
              data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
+             data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
+             data-ssh-error="{{.SSHError}}"
+             data-net-iface="{{.NetIface}}"
              {{else}}
              data-traffic-in="0" data-traffic-out="0"
+             data-ssh-reachable="false"
+             data-ssh-error=""
+             data-net-iface=""
              {{end}}
              id="traffic-meta-{{.ID}}">
+          <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
+          <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
           <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
           <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
-          <div>使用：<span id="traffic-used-{{.ID}}">-</span> / <span id="traffic-threshold-{{.ID}}">-</span></div>
+          <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
         </div>
       </div>
-      {{end}}
       <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
     </div>
     {{else}}
@@ -100,8 +106,8 @@
       {{range .RecentLogs}}
       <div class="event-item">
         <span class="event-time">{{.Time.ToTime.Format "2006-01-02 15:04:05"}}</span>
-        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[{{.MsgType}}]</span>
-        <span style="margin-left:8px;">{{.Message}}</span>
+        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[{{eventTypeZh .MsgType}}]</span>
+        <span style="margin-left:8px;">{{eventMessageZh .MsgType .Message}}</span>
       </div>
       {{else}}
       <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无事件记录</div>
