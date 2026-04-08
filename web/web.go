@@ -17,6 +17,7 @@ var FS embed.FS
 // HostTrafficInfo holds traffic stats for a single host for display.
 type HostTrafficInfo struct {
 	HostID       uint
+	Reachable    bool
 	TrafficIn    int64 // bytes received (cumulative)
 	TrafficOut   int64 // bytes sent (cumulative)
 	SSHReachable bool

@@ -78,17 +78,20 @@
         <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
              data-traffic-threshold="{{.TrafficThreshold}}"
              {{with (index $.TrafficMap .ID)}}
+             data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
              data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
              data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
              data-ssh-error="{{.SSHError}}"
              data-net-iface="{{.NetIface}}"
              {{else}}
+             data-reachable="false"
              data-traffic-in="0" data-traffic-out="0"
              data-ssh-reachable="false"
              data-ssh-error=""
              data-net-iface=""
              {{end}}
              id="traffic-meta-{{.ID}}">
+          <div>在线状态：<span id="online-status-{{.ID}}">-</span></div>
           <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
           <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
           <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>

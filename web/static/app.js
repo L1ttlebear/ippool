@@ -118,6 +118,9 @@ function updateHostTraffic(hostId, trafficThreshold, traffic) {
     if (!meta) return;
 
     const threshold = Number(trafficThreshold ?? meta.getAttribute('data-traffic-threshold') ?? 0) || 0;
+    const reachable = traffic && typeof traffic.reachable !== 'undefined'
+        ? !!traffic.reachable
+        : meta.getAttribute('data-reachable') === 'true';
     const inBytes = traffic && typeof traffic.in !== 'undefined'
         ? Number(traffic.in) || 0
         : Number(meta.getAttribute('data-traffic-in')) || 0;
@@ -137,12 +140,14 @@ function updateHostTraffic(hostId, trafficThreshold, traffic) {
 
     // Persist latest values for future incremental updates
     meta.setAttribute('data-traffic-threshold', String(threshold));
+    meta.setAttribute('data-reachable', String(reachable));
     meta.setAttribute('data-traffic-in', String(inBytes));
     meta.setAttribute('data-traffic-out', String(outBytes));
     meta.setAttribute('data-ssh-reachable', String(sshReachable));
     meta.setAttribute('data-ssh-error', sshError);
     meta.setAttribute('data-net-iface', netIface);
 
+    const onlineEl = document.getElementById('online-status-' + hostId);
     const inEl = document.getElementById('traffic-in-' + hostId);
     const outEl = document.getElementById('traffic-out-' + hostId);
     const usedEl = document.getElementById('traffic-used-' + hostId);
@@ -150,6 +155,10 @@ function updateHostTraffic(hostId, trafficThreshold, traffic) {
     const sshEl = document.getElementById('ssh-status-' + hostId);
     const ifaceEl = document.getElementById('traffic-iface-' + hostId);
 
+    if (onlineEl) {
+        onlineEl.textContent = reachable ? '在线' : '离线';
+        onlineEl.style.color = reachable ? '#4ade80' : '#f87171';
+    }
     if (inEl) inEl.textContent = fmtBytes(inBytes);
     if (outEl) outEl.textContent = fmtBytes(outBytes);
     if (usedEl) usedEl.textContent = fmtBytes(Math.max(inBytes, outBytes));

@@ -78,6 +78,7 @@ func loadLatestTrafficMap(db *gorm.DB, hosts []models.Host) map[uint]web.HostTra
 		}
 		m[h.ID] = web.HostTrafficInfo{
 			HostID:       h.ID,
+			Reachable:    rec.Reachable,
 			TrafficIn:    rec.TrafficIn,
 			TrafficOut:   rec.TrafficOut,
 			SSHReachable: rec.SSHReachable,
