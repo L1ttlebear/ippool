@@ -198,6 +198,23 @@ body.theme-light {
 .form-input:focus { outline: none; border-color: rgba(99, 102, 241, 0.6); }
 
 /* 主机卡片布局 */
+.monitor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    align-items: start;
+}
+
+.monitor-main {
+    min-width: 0;
+}
+
+.monitor-right {
+    position: sticky;
+    top: 84px;
+    align-self: start;
+}
+
 .host-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .host-stack { display: flex; flex-direction: column; gap: 14px; }
 
@@ -418,6 +435,8 @@ body.theme-light {
 @media (max-width: 980px) {
     .settings-layout { grid-template-columns: 1fr; }
     .side-menu { position: static; top: auto; }
+    .monitor-layout { grid-template-columns: 1fr; }
+    .monitor-right { position: static; top: auto; }
 }
 
 @media (max-width: 768px) {
