@@ -51,6 +51,23 @@ func (t *TelegramSender) Send(eventType string, payload map[string]any) error {
 // Falls back to a default format if template is empty.
 func renderTemplate(tmpl, eventType string, payload map[string]any) string {
 	if tmpl == "" {
+		if eventType == "ddns_mismatch" || eventType == "ddns_match" {
+			domain := fmt.Sprintf("%v", payload["domain"])
+			expected := fmt.Sprintf("%v", payload["expected_ip"])
+			resolved := "-"
+			if v, ok := payload["resolved_ips"]; ok {
+				if arr, ok := v.([]string); ok {
+					resolved = strings.Join(arr, ", ")
+				} else {
+					resolved = fmt.Sprintf("%v", v)
+				}
+			}
+			prefix := "✅ DDNS 校验通过"
+			if eventType == "ddns_mismatch" {
+				prefix = "❌ DDNS 校验失败"
+			}
+			return fmt.Sprintf("%s\n域名: %s\n期望IP: %s\n解析IP: %s\n时间: %s", prefix, domain, expected, resolved, time.Now().Format("2006-01-02 15:04:05"))
+		}
 		payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
 		return fmt.Sprintf("[IP Pool] %s\n%s", eventType, string(payloadJSON))
 	}

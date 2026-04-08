@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/L1ttlebear/ippool/database/auditlog"
@@ -108,4 +111,42 @@ func (d *DDNSUpdater) doUpdate(apiToken, zoneID, recordName, ip string) error {
 	}
 
 	return nil
+}
+
+// VerifyResolvedIP resolves the domain and checks whether one of the A/AAAA results matches expectedIP.
+// It returns whether the match succeeded, all resolved IP strings (sorted), and any lookup error.
+func (d *DDNSUpdater) VerifyResolvedIP(domain, expectedIP string) (bool, []string, error) {
+	domain = strings.TrimSpace(domain)
+	expectedIP = strings.TrimSpace(expectedIP)
+	if domain == "" {
+		return false, nil, fmt.Errorf("empty domain")
+	}
+	if expectedIP == "" {
+		return false, nil, fmt.Errorf("empty expected IP")
+	}
+
+	lookupIPs, err := net.LookupIP(domain)
+	if err != nil {
+		return false, nil, fmt.Errorf("lookup domain %s: %w", domain, err)
+	}
+
+	resolved := make([]string, 0, len(lookupIPs))
+	expected := net.ParseIP(expectedIP)
+	matched := false
+	for _, ip := range lookupIPs {
+		if ip == nil {
+			continue
+		}
+		s := ip.String()
+		resolved = append(resolved, s)
+		if expected != nil && ip.Equal(expected) {
+			matched = true
+		}
+	}
+	sort.Strings(resolved)
+
+	if len(resolved) == 0 {
+		return false, nil, fmt.Errorf("domain %s has no resolved IP", domain)
+	}
+	return matched, resolved, nil
 }

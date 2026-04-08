@@ -165,9 +165,19 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		cfZone, _ := config.GetAs[string](config.CFZoneIDKey, "")
 		cfRecord, _ := config.GetAs[string](config.CFRecordNameKey, "")
 
-		if cfToken != "" && cfZone != "" && cfRecord != "" {
+		domainMatched := false
+		var resolvedIPs []string
+		ddnsEnabled := cfToken != "" && cfZone != "" && cfRecord != ""
+		if ddnsEnabled {
 			if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
 				slog.Error("poller: DDNS update failed", "error", err)
+			}
+
+			ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
+			resolvedIPs = ips
+			domainMatched = ok
+			if err != nil {
+				slog.Warn("poller: DDNS verify failed", "domain", cfRecord, "expected_ip", electionResult.Leader.IP, "error", err)
 			}
 		}
 
@@ -183,7 +193,26 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 			if electionResult.PrevLeader != nil {
 				payload["prev_leader_id"] = electionResult.PrevLeader.ID
 			}
+			if ddnsEnabled {
+				payload["ddns_domain"] = cfRecord
+				payload["ddns_expected_ip"] = electionResult.Leader.IP
+				payload["ddns_resolved_ips"] = resolvedIPs
+				payload["ddns_match"] = domainMatched
+			}
 			p.notifier.Send("leader_changed", payload)
+
+			if ddnsEnabled {
+				eventType := "ddns_match"
+				if !domainMatched {
+					eventType = "ddns_mismatch"
+				}
+				p.notifier.Send(eventType, map[string]any{
+					"domain":      cfRecord,
+					"expected_ip": electionResult.Leader.IP,
+					"resolved_ips": resolvedIPs,
+					"ddns_match":  domainMatched,
+				})
+			}
 		}
 		break
 	}
