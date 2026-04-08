@@ -158,6 +158,34 @@ function prependEvent(data) {
     }
 }
 
+function applyTheme(theme) {
+    const isLight = theme === 'light';
+    document.body.classList.toggle('theme-light', isLight);
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+        toggle.textContent = isLight ? '☀️' : '🌙';
+        toggle.setAttribute('aria-label', isLight ? '切换到深色主题' : '切换到浅色主题');
+        toggle.title = isLight ? '浅色主题' : '深色主题';
+    }
+}
+
+function initThemeToggle() {
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+
+    const saved = localStorage.getItem('ui-theme');
+    const preferred = saved || 'dark';
+    applyTheme(preferred);
+
+    toggle.addEventListener('click', () => {
+        const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+        localStorage.setItem('ui-theme', next);
+        applyTheme(next);
+    });
+}
+
+initThemeToggle();
+
 // Only connect on pages that have the event list or host grid (i.e., index page)
 if (document.getElementById('host-grid') || document.getElementById('event-list')) {
     // Initialize from server-rendered data-* attributes (no WS needed)

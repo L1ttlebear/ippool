@@ -2,10 +2,13 @@
 {{define "content"}}
 <!-- 导航栏 -->
 <nav class="navbar">
-  <span style="font-size:18px;font-weight:600;">IP Pool Monitor</span>
-  <div class="flex gap-12 items-center">
-    <a href="/settings">设置</a>
-    <a href="/logout" style="color:rgba(255,255,255,0.5);">退出登录</a>
+  <div class="nav-left">
+    <span class="brand">IP Pool Monitor</span>
+  </div>
+  <div class="nav-right">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切换主题">🌙</button>
+    <a class="nav-link" href="/settings">设置</a>
+    <a class="nav-link nav-link-muted" href="/logout">退出登录</a>
   </div>
 </nav>
 
