@@ -14,6 +14,8 @@ type AppConfig struct {
 	CurrentLeaderID      uint   `json:"current_leader_id" default:"0"`
 	// 通知模板，支持变量: {event} {host} {ip} {state} {time}
 	NotifyTemplate string `json:"notify_template" default:"[IP Pool] {event}\n主机: {host} ({ip})\n状态: {state}\n时间: {time}"`
+	AgentSharedToken string `json:"agent_shared_token" default:""`
+	HeartbeatTimeoutSeconds int `json:"heartbeat_timeout_seconds" default:"90"`
 }
 
 const (
@@ -28,4 +30,6 @@ const (
 	WebhookURLKey           = "webhook_url"
 	CurrentLeaderIDKey      = "current_leader_id"
 	NotifyTemplateKey       = "notify_template"
+	AgentSharedTokenKey     = "agent_shared_token"
+	HeartbeatTimeoutSecondsKey = "heartbeat_timeout_seconds"
 )

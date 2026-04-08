@@ -91,19 +91,52 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		return
 	}
 
-	results := p.hc.CheckAll(hosts)
-
-	hostMap := make(map[uint]models.Host, len(hosts))
-	for _, h := range hosts {
-		hostMap[h.ID] = h
+	timeoutSecs, _ := config.GetAs[int](config.HeartbeatTimeoutSecondsKey, 90)
+	if timeoutSecs <= 0 {
+		timeoutSecs = 90
 	}
-	for _, r := range results {
-		h, ok := hostMap[r.HostID]
-		if !ok {
-			continue
+	timeout := time.Duration(timeoutSecs) * time.Second
+
+	hostIDs := make([]uint, 0, len(hosts))
+	for _, h := range hosts {
+		hostIDs = append(hostIDs, h.ID)
+	}
+
+	hbMap := map[uint]models.HostHeartbeat{}
+	if len(hostIDs) > 0 {
+		var heartbeats []models.HostHeartbeat
+		if err := db.Where("host_id IN ?", hostIDs).Find(&heartbeats).Error; err != nil {
+			slog.Error("poller: failed to load heartbeats", "error", err)
+			return
 		}
+		for _, hb := range heartbeats {
+			hbMap[hb.HostID] = hb
+		}
+	}
+
+	results := make([]CheckResult, 0, len(hosts))
+	for _, h := range hosts {
+		hb, ok := hbMap[h.ID]
+		r := CheckResult{HostID: h.ID}
+		if !ok || time.Since(hb.UpdatedAt) > timeout {
+			r.Reachable = false
+			r.SSHReachable = false
+			r.Error = "heartbeat timeout"
+			r.SSHError = "heartbeat timeout"
+		} else {
+			r.Reachable = hb.NetworkOK && hb.SSHOK
+			r.SSHReachable = hb.SSHOK
+			r.SSHError = hb.Error
+			r.NetIface = hb.NetIface
+			r.TrafficIn = hb.TrafficIn
+			r.TrafficOut = hb.TrafficOut
+			if !r.Reachable && r.Error == "" {
+				r.Error = hb.Error
+			}
+		}
+		results = append(results, r)
 		if err := p.sm.ApplyCheckResult(db, h, r); err != nil {
-			slog.Warn("poller: apply check result failed", "host_id", r.HostID, "error", err)
+			slog.Warn("poller: apply check result failed", "host_id", h.ID, "error", err)
 		}
 	}
 

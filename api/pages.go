@@ -85,19 +85,51 @@ func GetSettings(c *gin.Context) {
 
 func loadLatestTrafficMap(db *gorm.DB, hosts []models.Host) map[uint]web.HostTrafficInfo {
 	m := make(map[uint]web.HostTrafficInfo, len(hosts))
+	if len(hosts) == 0 {
+		return m
+	}
+
+	hostIDs := make([]uint, 0, len(hosts))
 	for _, h := range hosts {
-		var rec models.CheckRecord
-		if err := db.Where("host_id = ?", h.ID).Order("time DESC").First(&rec).Error; err != nil {
+		hostIDs = append(hostIDs, h.ID)
+	}
+
+	var hbs []models.HostHeartbeat
+	if err := db.Where("host_id IN ?", hostIDs).Find(&hbs).Error; err != nil {
+		return m
+	}
+
+	hbMap := make(map[uint]models.HostHeartbeat, len(hbs))
+	for _, hb := range hbs {
+		hbMap[hb.HostID] = hb
+	}
+
+	timeoutSecs, _ := config.GetAs[int](config.HeartbeatTimeoutSecondsKey, 90)
+	if timeoutSecs <= 0 {
+		timeoutSecs = 90
+	}
+	timeout := time.Duration(timeoutSecs) * time.Second
+
+	for _, h := range hosts {
+		hb, ok := hbMap[h.ID]
+		if !ok || time.Since(hb.UpdatedAt) > timeout {
+			m[h.ID] = web.HostTrafficInfo{
+				HostID:       h.ID,
+				Reachable:    false,
+				SSHReachable: false,
+				SSHError:     "heartbeat timeout",
+			}
 			continue
 		}
+		reachable := hb.NetworkOK && hb.SSHOK
 		m[h.ID] = web.HostTrafficInfo{
 			HostID:       h.ID,
-			Reachable:    rec.Reachable,
-			TrafficIn:    rec.TrafficIn,
-			TrafficOut:   rec.TrafficOut,
-			SSHReachable: rec.SSHReachable,
-			SSHError:     rec.SSHError,
-			NetIface:     rec.NetIface,
+			Reachable:    reachable,
+			TrafficIn:    hb.TrafficIn,
+			TrafficOut:   hb.TrafficOut,
+			SSHReachable: hb.SSHOK,
+			SSHError:     hb.Error,
+			NetIface:     hb.NetIface,
 		}
 	}
 	return m

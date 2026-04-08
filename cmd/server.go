@@ -104,6 +104,7 @@ func runServer(_ *cobra.Command, _ []string) {
 	// Public routes
 	r.GET("/login", api.GetLogin)
 	r.POST("/login", api.PostLogin)
+	r.POST("/api/agent/heartbeat", api.AgentHeartbeat)
 
 	// Authenticated routes
 	auth := r.Group("/")

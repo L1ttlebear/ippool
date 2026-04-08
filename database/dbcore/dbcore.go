@@ -48,6 +48,7 @@ func GetDBInstance() *gorm.DB {
 			&models.Log{},
 			&models.Host{},
 			&models.CheckRecord{},
+			&models.HostHeartbeat{},
 		)
 		if err != nil {
 			log.Fatalf("Failed to auto-migrate tables: %v", err)

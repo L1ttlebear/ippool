@@ -118,17 +118,22 @@
     </form>
   </div>
 
-  <!-- 轮询参数 -->
+  <!-- 心跳参数 -->
   <div class="glass-card mb-24">
-    <div class="section-title mb-16">轮询参数</div>
-    <div class="section-hint mb-16">系统每隔多少秒检查一次主机状态</div>
-    <form id="poll-form">
+    <div class="section-title mb-16">Agent 心跳参数</div>
+    <div class="section-hint mb-16">仅使用 Agent 心跳判定主机在线状态（不再主动 SSH 探测）</div>
+    <form id="heartbeat-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">轮询间隔（秒，最小 10）</label>
-        <input class="form-input" type="number" name="poll_interval" min="10"
-          value="{{index .Config "poll_interval"}}" style="max-width:200px;">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Agent 共享 Token</label>
+        <input class="form-input" type="password" name="agent_shared_token" placeholder="Agent 请求头 X-Agent-Token"
+          value="{{index .Config "agent_shared_token"}}">
       </div>
-      <button class="btn btn-primary" type="button" onclick="saveConfig('poll-form', ['poll_interval'])">保存</button>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">心跳超时阈值（秒）</label>
+        <input class="form-input" type="number" min="10" name="heartbeat_timeout_seconds"
+          value="{{index .Config "heartbeat_timeout_seconds"}}" style="max-width:220px;">
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveConfig('heartbeat-form', ['agent_shared_token','heartbeat_timeout_seconds'])">保存</button>
     </form>
   </div>
 
