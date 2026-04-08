@@ -53,116 +53,113 @@
     </div>
   </div>
 
-  <!-- 主机卡片布局：左侧在线可用，右侧已用尽/离线 -->
-  <div class="host-layout mb-24">
-    <div>
-      <div style="margin-bottom:8px;" class="flex justify-between items-center">
-        <div>
-          <div class="section-title">主机列表</div>
-          <div class="section-hint">在线且可用（ready）的主机</div>
-        </div>
-      </div>
-      <div class="host-grid" id="host-grid">
-        {{range .ActiveHosts}}
-        <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
-      <div class="flex justify-between items-center mb-16">
-        <div>
-          <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
-        </div>
-        <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
-        <div class="progress-bar">
-          <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
-        </div>
-        <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
-             data-traffic-threshold="{{.TrafficThreshold}}"
-             {{with (index $.TrafficMap .ID)}}
-             data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
-             data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
-             data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
-             data-ssh-error="{{.SSHError}}"
-             data-net-iface="{{.NetIface}}"
-             {{else}}
-             data-reachable="false"
-             data-traffic-in="0" data-traffic-out="0"
-             data-ssh-reachable="false"
-             data-ssh-error=""
-             data-net-iface=""
-             {{end}}
-             id="traffic-meta-{{.ID}}">
-          <div>在线状态：<span id="online-status-{{.ID}}">-</span></div>
-          <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
-          <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
-          <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
-          <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
-          <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
-        </div>
-      </div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
-    </div>
-        {{else}}
-        <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无在线可用主机</div>
-        {{end}}
+  <!-- 在线主机 -->
+  <div class="mb-24">
+    <div style="margin-bottom:8px;" class="flex justify-between items-center">
+      <div>
+        <div class="section-title">主机列表</div>
+        <div class="section-hint">在线且可用（ready）的主机</div>
       </div>
     </div>
+    <div class="host-grid" id="host-grid">
+      {{range .ActiveHosts}}
+      <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
+    <div class="flex justify-between items-center mb-16">
+      <div>
+        <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
+      </div>
+      <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
+      <div class="progress-bar">
+        <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
+           data-traffic-threshold="{{.TrafficThreshold}}"
+           {{with (index $.TrafficMap .ID)}}
+           data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
+           data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
+           data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
+           data-ssh-error="{{.SSHError}}"
+           data-net-iface="{{.NetIface}}"
+           {{else}}
+           data-reachable="false"
+           data-traffic-in="0" data-traffic-out="0"
+           data-ssh-reachable="false"
+           data-ssh-error=""
+           data-net-iface=""
+           {{end}}
+           id="traffic-meta-{{.ID}}">
+        <div>在线状态：<span id="online-status-{{.ID}}">-</span></div>
+        <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
+        <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
+        <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
+        <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
+        <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
+  </div>
+      {{else}}
+      <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无在线可用主机</div>
+      {{end}}
+    </div>
+  </div>
 
-    <div>
-      <div class="glass-card exhausted-card">
-        <div class="exhausted-header flex justify-between items-center" style="margin-bottom:8px;">
-          <div>
-            <div class="section-title">已用尽主机</div>
-            <div class="section-hint">包含满载（full）或离线主机</div>
-          </div>
-        </div>
-        <div class="host-stack exhausted-scroll" id="host-exhausted-list">
-        {{range .ExhaustedHosts}}
-        <div class="glass-card exhausted-host-item" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
-          <div class="flex justify-between items-center mb-16">
-            <div>
-              <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
-            </div>
-            <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
-          </div>
-          <div style="margin-bottom:12px;">
-            <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
-            <div class="progress-bar">
-              <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
-                 data-traffic-threshold="{{.TrafficThreshold}}"
-                 {{with (index $.TrafficMap .ID)}}
-                 data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
-                 data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
-                 data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
-                 data-ssh-error="{{.SSHError}}"
-                 data-net-iface="{{.NetIface}}"
-                 {{else}}
-                 data-reachable="false"
-                 data-traffic-in="0" data-traffic-out="0"
-                 data-ssh-reachable="false"
-                 data-ssh-error=""
-                 data-net-iface=""
-                 {{end}}
-                 id="traffic-meta-{{.ID}}">
-              <div>在线状态：<span id="online-status-{{.ID}}">-</span></div>
-              <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
-              <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
-              <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
-              <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
-              <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
-        </div>
-        {{else}}
-        <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无已用尽主机</div>
-        {{end}}
-        </div>
+  <!-- 单独卡片：已用尽主机（内部滚动） -->
+  <div class="glass-card exhausted-panel mb-24">
+    <div class="exhausted-header flex justify-between items-center">
+      <div>
+        <div class="section-title">已用尽主机</div>
+        <div class="section-hint">包含满载（full）或离线主机</div>
       </div>
+    </div>
+    <div class="host-stack exhausted-scroll" id="host-exhausted-list">
+      {{range .ExhaustedHosts}}
+      <div class="glass-card exhausted-host-item" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
+        <div class="flex justify-between items-center mb-16">
+          <div>
+            <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
+          </div>
+          <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
+          <div class="progress-bar">
+            <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
+               data-traffic-threshold="{{.TrafficThreshold}}"
+               {{with (index $.TrafficMap .ID)}}
+               data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
+               data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
+               data-ssh-reachable="{{if .SSHReachable}}true{{else}}false{{end}}"
+               data-ssh-error="{{.SSHError}}"
+               data-net-iface="{{.NetIface}}"
+               {{else}}
+               data-reachable="false"
+               data-traffic-in="0" data-traffic-out="0"
+               data-ssh-reachable="false"
+               data-ssh-error=""
+               data-net-iface=""
+               {{end}}
+               id="traffic-meta-{{.ID}}">
+            <div>在线状态：<span id="online-status-{{.ID}}">-</span></div>
+            <div>SSH：<span id="ssh-status-{{.ID}}">-</span></div>
+            <div>默认网卡：<span id="traffic-iface-{{.ID}}">-</span></div>
+            <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
+            <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
+            <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
+      </div>
+      {{else}}
+      <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无已用尽主机</div>
+      {{end}}
     </div>
   </div>
 
