@@ -259,6 +259,49 @@ body.theme-light {
     -webkit-backdrop-filter: blur(16px);
 }
 
+.host-install-progress {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    background: rgba(99, 102, 241, 0.12);
+}
+
+.host-install-progress-text {
+    font-size: 13px;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+
+.host-install-progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.16);
+    overflow: hidden;
+}
+
+.host-install-progress-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.95), rgba(129, 140, 248, 0.95));
+    transition: width 0.28s ease;
+}
+
+.host-install-progress-bar.indeterminate {
+    animation: hostInstallLoading 1.2s ease-in-out infinite;
+}
+
+@keyframes hostInstallLoading {
+    0% {
+        transform: translateX(-120%);
+    }
+    100% {
+        transform: translateX(320%);
+    }
+}
+
 /* 响应式 */
 @media (max-width: 980px) {
     .settings-layout { grid-template-columns: 1fr; }

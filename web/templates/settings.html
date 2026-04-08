@@ -240,10 +240,17 @@
       <input class="form-input" type="text" id="host-agent-server-url" placeholder="Agent 回传地址，留空自动使用当前面板地址">
       <div class="section-hint" style="margin-top:6px;">示例：https://panel.example.com</div>
     </div>
+    <div id="host-install-progress" class="host-install-progress" style="display:none;">
+      <div id="host-install-progress-text" class="host-install-progress-text"></div>
+      <div class="host-install-progress-track">
+        <div id="host-install-progress-bar" class="host-install-progress-bar"></div>
+      </div>
+    </div>
     <div id="host-modal-error" style="color:#f87171;font-size:13px;margin-bottom:12px;display:none;"></div>
     <div class="flex gap-8">
-      <button class="btn btn-primary" onclick="saveHost()">保存</button>
-      <button class="btn" style="background:rgba(255,255,255,0.1);color:#e0e0e0;" onclick="closeHostModal()">取消</button>
+      <button id="host-save-btn" class="btn btn-primary" onclick="saveHost()">保存</button>
+      <button id="host-install-now-btn" class="btn btn-primary" style="display:none;" onclick="installHostAgentNow()">安装 Agent</button>
+      <button id="host-cancel-btn" class="btn" style="background:rgba(255,255,255,0.1);color:#e0e0e0;" onclick="closeHostModal()">取消</button>
     </div>
   </div>
 </div>
@@ -251,6 +258,50 @@
 {{end}}
 {{define "scripts"}}
 <script>
+let hostSaveInProgress = false;
+
+function setHostInstallProgress(visible, message = '正在安装 Agent，请稍候...', percent = null) {
+  const box = document.getElementById('host-install-progress');
+  const text = document.getElementById('host-install-progress-text');
+  const bar = document.getElementById('host-install-progress-bar');
+  if (!box || !text || !bar) return;
+
+  if (!visible) {
+    box.style.display = 'none';
+    text.textContent = '';
+    bar.style.width = '0%';
+    bar.classList.remove('indeterminate');
+    return;
+  }
+
+  box.style.display = 'block';
+  text.textContent = message;
+  if (typeof percent === 'number' && Number.isFinite(percent)) {
+    const p = Math.max(0, Math.min(100, percent));
+    bar.classList.remove('indeterminate');
+    bar.style.width = p + '%';
+  } else {
+    bar.classList.add('indeterminate');
+    bar.style.width = '35%';
+  }
+}
+
+function setHostModalButtonsDisabled(disabled) {
+  const saveBtn = document.getElementById('host-save-btn');
+  const installNowBtn = document.getElementById('host-install-now-btn');
+  const cancelBtn = document.getElementById('host-cancel-btn');
+  if (saveBtn) saveBtn.disabled = !!disabled;
+  if (installNowBtn) installNowBtn.disabled = !!disabled;
+  if (cancelBtn) cancelBtn.disabled = !!disabled;
+}
+
+function updateHostInstallNowButtonVisibility() {
+  const id = document.getElementById('host-id').value;
+  const btn = document.getElementById('host-install-now-btn');
+  if (!btn) return;
+  btn.style.display = id ? 'inline-flex' : 'none';
+}
+
 function openAddHostModal() {
   document.getElementById('modal-title').textContent = '添加主机';
   document.getElementById('host-id').value = '';
@@ -268,10 +319,18 @@ function openAddHostModal() {
   document.getElementById('host-install-agent').checked = true;
   document.getElementById('host-agent-server-url').value = '';
   document.getElementById('host-modal-error').style.display = 'none';
+  setHostInstallProgress(false);
+  setHostModalButtonsDisabled(false);
+  hostSaveInProgress = false;
+  updateHostInstallNowButtonVisibility();
   document.getElementById('host-modal').classList.add('active');
 }
 
-function closeHostModal() {
+function closeHostModal(force = false) {
+  if (hostSaveInProgress && !force) {
+    return;
+  }
+  setHostInstallProgress(false);
   document.getElementById('host-modal').classList.remove('active');
 }
 
@@ -294,11 +353,16 @@ async function editHost(id) {
   document.getElementById('host-install-agent').checked = false;
   document.getElementById('host-agent-server-url').value = '';
   document.getElementById('host-modal-error').style.display = 'none';
+  setHostInstallProgress(false);
+  setHostModalButtonsDisabled(false);
+  hostSaveInProgress = false;
+  updateHostInstallNowButtonVisibility();
   document.getElementById('host-modal').classList.add('active');
 }
 
 async function saveHost() {
   const id = document.getElementById('host-id').value;
+  const shouldInstallAgent = !id && document.getElementById('host-install-agent').checked;
   const body = {
     name: document.getElementById('host-name').value,
     ip: document.getElementById('host-ip').value,
@@ -310,22 +374,111 @@ async function saveHost() {
     traffic_threshold: Math.max(0, Math.round((parseFloat(document.getElementById('host-traffic-threshold').value) || 0) * (1024 ** 3))),
     pre_command: document.getElementById('host-pre-command').value,
     disconnect_command: document.getElementById('host-disconnect-command').value,
-    install_agent: !id && document.getElementById('host-install-agent').checked,
+    install_agent: shouldInstallAgent,
     agent_server_url: document.getElementById('host-agent-server-url').value,
     agent_interval_seconds: 30,
   };
+
+  const errEl = document.getElementById('host-modal-error');
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
   const url = id ? '/api/hosts/' + id : '/api/hosts';
   const method = id ? 'PUT' : 'POST';
-  const resp = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  const data = await resp.json();
-  if (!resp.ok) {
-    const errEl = document.getElementById('host-modal-error');
-    errEl.textContent = data.error || '保存失败';
+
+  try {
+    hostSaveInProgress = true;
+    setHostModalButtonsDisabled(true);
+    if (shouldInstallAgent) {
+      setHostInstallProgress(true, '正在连接主机并安装 Agent，请稍候...', null);
+    }
+
+    const resp = await fetch(url, {
+      method,
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      errEl.textContent = data.error || '保存失败';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (shouldInstallAgent) {
+      if (data.agent_install_success) {
+        setHostInstallProgress(true, 'Agent 安装完成，正在刷新列表...', 100);
+      } else {
+        const msg = data.agent_install_error || 'Agent 安装失败';
+        setHostInstallProgress(true, 'Agent 安装失败，请检查连接命令或 SSH 信息', 100);
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        return;
+      }
+    }
+
+    closeHostModal(true);
+    location.reload();
+  } catch (e) {
+    errEl.textContent = '请求失败，请检查网络或服务状态';
     errEl.style.display = 'block';
+  } finally {
+    hostSaveInProgress = false;
+    setHostModalButtonsDisabled(false);
+    if (!document.getElementById('host-modal').classList.contains('active')) {
+      setHostInstallProgress(false);
+    }
+  }
+}
+
+async function installHostAgentNow() {
+  const id = document.getElementById('host-id').value;
+  if (!id) {
+    alert('请先保存主机，再执行 Agent 安装');
     return;
   }
-  closeHostModal();
-  location.reload();
+
+  const errEl = document.getElementById('host-modal-error');
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  const body = {
+    agent_server_url: document.getElementById('host-agent-server-url').value,
+    agent_interval_seconds: 30,
+  };
+
+  try {
+    hostSaveInProgress = true;
+    setHostModalButtonsDisabled(true);
+    setHostInstallProgress(true, '正在连接主机并安装 Agent，请稍候...', null);
+
+    const resp = await fetch('/api/hosts/' + id + '/install-agent', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || !data.agent_install_success) {
+      setHostInstallProgress(true, 'Agent 安装失败，请检查连接命令或 SSH 信息', 100);
+      errEl.textContent = data.error || data.agent_install_error || 'Agent 安装失败';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    setHostInstallProgress(true, 'Agent 安装完成', 100);
+    setTimeout(() => {
+      setHostInstallProgress(false);
+    }, 600);
+  } catch (e) {
+    setHostInstallProgress(true, 'Agent 安装失败，请稍后重试', 100);
+    errEl.textContent = '请求失败，请检查网络或服务状态';
+    errEl.style.display = 'block';
+  } finally {
+    hostSaveInProgress = false;
+    setHostModalButtonsDisabled(false);
+  }
 }
 
 async function deleteHost(id, name) {

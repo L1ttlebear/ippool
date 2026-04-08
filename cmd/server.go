@@ -123,6 +123,7 @@ func runServer(_ *cobra.Command, _ []string) {
 		auth.DELETE("/api/hosts/:id", api.DeleteHost)
 		auth.PUT("/api/hosts/:id/state", api.SetHostState(sm))
 		auth.POST("/api/hosts/:id/check-ssh", api.CheckHostSSH)
+		auth.POST("/api/hosts/:id/install-agent", api.InstallHostAgent)
 
 		// Config API
 		auth.GET("/api/config", api.GetConfig)

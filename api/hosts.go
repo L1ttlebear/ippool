@@ -53,6 +53,10 @@ func CreateHost(c *gin.Context) {
 		return
 	}
 	host := req.Host
+	if strings.TrimSpace(host.DisconnectCommand) == "" {
+		tmpl, _ := config.GetAs[string](config.DefaultDisconnectCommandTemplateKey, "")
+		host.DisconnectCommand = strings.TrimSpace(tmpl)
+	}
 
 	if net.ParseIP(host.IP) == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid IP address"})
@@ -231,13 +235,70 @@ func CheckHostSSH(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"host_id":        host.ID,
-		"host_name":      host.Name,
-		"ip":             host.IP,
-		"ssh_reachable":  result.SSHReachable,
-		"ssh_error":      result.SSHError,
-		"latency_ms":     result.LatencyMs,
-		"checked_at":     time.Now().Format(time.RFC3339),
-		"status":         status,
+		"host_id":       host.ID,
+		"host_name":     host.Name,
+		"ip":            host.IP,
+		"ssh_reachable": result.SSHReachable,
+		"ssh_error":     result.SSHError,
+		"latency_ms":    result.LatencyMs,
+		"checked_at":    time.Now().Format(time.RFC3339),
+		"status":        status,
+	})
+}
+
+// InstallHostAgent manually installs heartbeat agent for an existing host.
+func InstallHostAgent(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	db := dbcore.GetDBInstance()
+	var host models.Host
+	if err := db.First(&host, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "host not found"})
+		return
+	}
+
+	var req struct {
+		AgentServerURL      string `json:"agent_server_url"`
+		AgentIntervalSecond int    `json:"agent_interval_seconds"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, _ := config.GetAs[string](config.AgentSharedTokenKey, "")
+	serverURL := strings.TrimSpace(req.AgentServerURL)
+	if serverURL == "" {
+		if c.Request.TLS != nil {
+			serverURL = "https://" + c.Request.Host
+		} else {
+			serverURL = "http://" + c.Request.Host
+		}
+	}
+	interval := req.AgentIntervalSecond
+	if interval <= 0 {
+		interval = 30
+	}
+
+	installer := &engine.AgentInstaller{}
+	res := installer.Install(host, serverURL, token, interval)
+	if !res.Success {
+		c.JSON(http.StatusOK, gin.H{
+			"host":                 host,
+			"agent_install_success": false,
+			"agent_install_error":   res.Error,
+			"agent_install_output":  res.Output,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"host":                  host,
+		"agent_install_success": true,
+		"agent_install_output":  res.Output,
 	})
 }
