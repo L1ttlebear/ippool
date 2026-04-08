@@ -16,6 +16,19 @@ type CircuitBreaker struct {
 // Check evaluates the host list and updates the circuit state.
 // Returns (open, changed) where changed=true means the state flipped.
 func (cb *CircuitBreaker) Check(hosts []models.Host) (open bool, changed bool) {
+	// No hosts configured is not a circuit-open condition.
+	if len(hosts) == 0 {
+		cb.mu.Lock()
+		defer cb.mu.Unlock()
+		prev := cb.isOpen
+		cb.isOpen = false
+		changed = prev != cb.isOpen
+		if changed {
+			auditlog.EventLog("circuit_close", "circuit breaker closed: no hosts configured")
+		}
+		return cb.isOpen, changed
+	}
+
 	allDown := true
 	for _, h := range hosts {
 		if h.State == models.StateReady {

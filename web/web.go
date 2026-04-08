@@ -26,6 +26,7 @@ type IndexPageData struct {
 	Hosts           []models.Host
 	Domain          string
 	CircuitOpen     bool
+	NoHosts         bool
 	RecentLogs      []models.Log
 	LastPoll        time.Time
 	CurrentLeaderID uint

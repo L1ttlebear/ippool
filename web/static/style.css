@@ -61,7 +61,13 @@ body.theme-light {
     display: none;
 }
 .circuit-banner.active { display: flex; align-items: center; gap: 12px; }
-
+.circuit-banner.warning {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.55);
+}
+.circuit-banner.warning #circuit-banner-title {
+    color: #fbbf24;
+}
 /* 导航栏 */
 .navbar {
     position: sticky;

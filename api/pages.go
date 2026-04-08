@@ -41,6 +41,7 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			Hosts:           hosts,
 			Domain:          domain,
 			CircuitOpen:     cb.IsOpen(),
+			NoHosts:         len(hosts) == 0,
 			RecentLogs:      recentLogs,
 			LastPoll:        time.Now(),
 			CurrentLeaderID: leaderID,

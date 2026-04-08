@@ -39,12 +39,12 @@
     </div>
   </div>
 
-  <!-- 熔断告警横幅 -->
-  <div class="circuit-banner mb-24{{if .CircuitOpen}} active{{end}}" id="circuit-banner">
-    <span style="font-size:20px;">⚠</span>
+  <!-- 状态告警横幅 -->
+  <div class="circuit-banner mb-24{{if .CircuitOpen}} active{{end}}{{if .NoHosts}} active warning{{end}}" id="circuit-banner" data-no-hosts="{{if .NoHosts}}true{{else}}false{{end}}">
+    <span style="font-size:20px;" id="circuit-banner-icon">{{if .NoHosts}}⚠️{{else}}⚠{{end}}</span>
     <div>
-      <div style="font-weight:600;color:#f87171;">熔断器已触发</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.7);">所有主机均不可用，请立即介入</div>
+      <div style="font-weight:600;" id="circuit-banner-title">{{if .NoHosts}}请添加主机{{else}}熔断器已触发{{end}}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);" id="circuit-banner-desc">{{if .NoHosts}}主机池为空，请前往设置页添加主机{{else}}所有主机均不可用，请立即介入{{end}}</div>
     </div>
   </div>
 

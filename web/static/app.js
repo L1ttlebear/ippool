@@ -134,6 +134,25 @@ function updateHostTraffic(hostId, trafficThreshold, traffic) {
 function updateCircuitBanner(open) {
     const banner = document.getElementById('circuit-banner');
     if (!banner) return;
+
+    const noHosts = banner.getAttribute('data-no-hosts') === 'true';
+    const titleEl = document.getElementById('circuit-banner-title');
+    const descEl = document.getElementById('circuit-banner-desc');
+    const iconEl = document.getElementById('circuit-banner-icon');
+
+    if (noHosts) {
+        banner.classList.add('active', 'warning');
+        if (titleEl) titleEl.textContent = '请添加主机';
+        if (descEl) descEl.textContent = '主机池为空，请前往设置页添加主机';
+        if (iconEl) iconEl.textContent = '⚠️';
+        return;
+    }
+
+    banner.classList.remove('warning');
+    if (titleEl) titleEl.textContent = '熔断器已触发';
+    if (descEl) descEl.textContent = '所有主机均不可用，请立即介入';
+    if (iconEl) iconEl.textContent = '⚠';
+
     if (open) {
         banner.classList.add('active');
     } else {
