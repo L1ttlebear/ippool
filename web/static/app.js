@@ -371,10 +371,41 @@ function enhanceEventItem(item) {
     item.setAttribute('data-enhanced', 'true');
 }
 
+function makeEventItemCollapsible(item, openByDefault = false) {
+    if (!item || item.getAttribute('data-collapsible') === 'true') return;
+
+    const head = item.querySelector('.event-item-head');
+    const messageEl = item.querySelector('.event-message');
+    if (!head || !messageEl) return;
+
+    const details = document.createElement('details');
+    details.className = 'event-collapse';
+    details.open = !!openByDefault;
+
+    const summary = document.createElement('summary');
+    summary.className = 'event-collapse-summary';
+    summary.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'event-collapse-body';
+    body.appendChild(messageEl);
+
+    details.appendChild(summary);
+    details.appendChild(body);
+
+    item.innerHTML = '';
+    item.appendChild(details);
+    item.setAttribute('data-collapsible', 'true');
+}
+
 function enhanceEventList() {
     const list = document.getElementById('event-list');
     if (!list) return;
-    list.querySelectorAll('.event-item').forEach(enhanceEventItem);
+    const items = list.querySelectorAll('.event-item');
+    items.forEach((item, idx) => {
+        enhanceEventItem(item);
+        makeEventItemCollapsible(item, idx === 0);
+    });
 }
 
 // 在事件流顶部插入新事件
@@ -407,7 +438,13 @@ function prependEvent(data) {
     item.appendChild(msg);
 
     enhanceEventItem(item);
+    makeEventItemCollapsible(item, true);
     list.insertBefore(item, list.firstChild);
+
+    const all = list.querySelectorAll('.event-item .event-collapse');
+    all.forEach((d, i) => {
+        d.open = i === 0;
+    });
 
     // Keep at most 20 items
     while (list.children.length > 20) {

@@ -210,8 +210,8 @@ body.theme-light {
 }
 
 .monitor-right {
-    position: sticky;
-    top: 84px;
+    position: static;
+    top: auto;
     align-self: start;
 }
 
@@ -297,6 +297,27 @@ body.theme-light {
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 6px;
+}
+
+.event-collapse {
+    border: 0;
+}
+
+.event-collapse-summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.event-collapse-summary::-webkit-details-marker {
+    display: none;
+}
+
+.event-collapse-summary .event-item-head {
+    margin-bottom: 0;
+}
+
+.event-collapse-body {
+    margin-top: 8px;
 }
 .event-time { color: var(--muted-text); font-size: 12px; }
 .event-type-badge {

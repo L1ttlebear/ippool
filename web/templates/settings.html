@@ -34,13 +34,13 @@
     </div>
     <table class="table">
       <thead>
-        <tr class="host-row" data-pool="{{.Pool}}">
+        <tr>
           <th>名称</th><th>IP</th><th>状态</th><th>SSH检测</th><th>优先级</th><th>Pool</th><th>操作</th>
         </tr>
       </thead>
       <tbody>
         {{range .Hosts}}
-        <tr>
+        <tr class="host-row" data-pool="{{.Pool}}">
           <td>{{.Name}}</td>
           <td>{{.IP}}</td>
           <td><span class="badge badge-{{.State}}">{{.State}}</span></td>
