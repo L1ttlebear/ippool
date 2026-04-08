@@ -10,6 +10,10 @@
     --input-border: rgba(255, 255, 255, 0.2);
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 body {
     background: var(--bg-gradient);
     min-height: 100vh;
@@ -245,30 +249,52 @@ body.theme-light {
 .settings-layout {
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
-    gap: 18px;
+    gap: 20px;
     align-items: start;
 }
 
 .side-menu {
     position: sticky;
     top: 84px;
+    width: 220px;
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    overflow: hidden;
 }
 
 .side-menu-title {
     font-size: 12px;
     color: var(--muted-text);
-    margin-bottom: 2px;
+    margin: 2px 2px 6px;
     letter-spacing: 0.5px;
 }
 
 .side-menu-btn,
 .side-menu-link {
     width: 100%;
+    max-width: 100%;
+    min-height: 40px;
     justify-content: flex-start;
+    border-radius: 12px;
+    padding: 0 14px;
+    margin: 0;
+    transform: none !important;
+}
+
+.side-menu .theme-toggle {
+    font-size: 14px;
+}
+
+.side-menu-link {
+    font-size: 14px;
+}
+
+.side-menu-link.active {
+    border-color: rgba(99, 102, 241, 0.52);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.24), rgba(129, 140, 248, 0.18));
+    color: #fff;
 }
 
 .settings-main {
