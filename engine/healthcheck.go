@@ -18,6 +18,7 @@ const (
 	defaultHealthConcurrency = 10
 	tcpDialTimeout           = 10 * time.Second
 	healthRetryDelay         = 5 * time.Second
+	externalProbeURL         = "https://www.hkt.com/"
 )
 
 // CheckResult holds the result of a single host health check.
@@ -108,6 +109,14 @@ func (hc *HealthChecker) checkOne(host models.Host) CheckResult {
 		}
 
 		if sshRes.SSHReachable {
+			probeOK, probeErr := hc.checkExternalConnectivity(host)
+			if !probeOK {
+				result.Reachable = false
+				result.Error = probeErr
+				result.SSHError = probeErr
+				return result
+			}
+
 			iface, in, out, err := hc.checkTraffic(host)
 			if err == nil {
 				result.NetIface = iface
@@ -168,6 +177,28 @@ func (hc *HealthChecker) checkTraffic(host models.Host) (iface string, in, out i
 	}
 
 	return parseNetDev(string(out2))
+}
+
+// checkExternalConnectivity verifies the host can reach external internet endpoint.
+func (hc *HealthChecker) checkExternalConnectivity(host models.Host) (bool, string) {
+	client, err := dialSSH(host, 20*time.Second)
+	if err != nil {
+		return false, fmt.Sprintf("ssh dial failed: %v", err)
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return false, fmt.Sprintf("ssh new session failed: %v", err)
+	}
+	defer session.Close()
+
+	// use curl first, fallback to wget
+	cmd := fmt.Sprintf("(command -v curl >/dev/null 2>&1 && curl -fsS -m 10 -o /dev/null %s) || (command -v wget >/dev/null 2>&1 && wget -q -T 10 -O /dev/null %s)", externalProbeURL, externalProbeURL)
+	if _, err := session.Output(cmd); err != nil {
+		return false, fmt.Sprintf("external probe failed (%s): %v", externalProbeURL, err)
+	}
+	return true, ""
 }
 
 // parseNetDev parses /proc/net/dev output and returns bytes for the first non-lo interface.
