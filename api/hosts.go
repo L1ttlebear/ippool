@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/L1ttlebear/ippool/config"
 	"github.com/L1ttlebear/ippool/database/dbcore"
 	"github.com/L1ttlebear/ippool/database/models"
 	"github.com/L1ttlebear/ippool/engine"
 )
-
 // GetHosts returns all hosts.
 func GetHosts(c *gin.Context) {
 	db := dbcore.GetDBInstance()
@@ -42,11 +42,17 @@ func GetHost(c *gin.Context) {
 
 // CreateHost creates a new host.
 func CreateHost(c *gin.Context) {
-	var host models.Host
-	if err := c.ShouldBindJSON(&host); err != nil {
+	var req struct {
+		models.Host
+		InstallAgent        bool   `json:"install_agent"`
+		AgentServerURL      string `json:"agent_server_url"`
+		AgentIntervalSecond int    `json:"agent_interval_seconds"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	host := req.Host
 
 	if net.ParseIP(host.IP) == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid IP address"})
@@ -70,6 +76,41 @@ func CreateHost(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	if req.InstallAgent {
+		token, _ := config.GetAs[string](config.AgentSharedTokenKey, "")
+		serverURL := strings.TrimSpace(req.AgentServerURL)
+		if serverURL == "" {
+			if c.Request.TLS != nil {
+				serverURL = "https://" + c.Request.Host
+			} else {
+				serverURL = "http://" + c.Request.Host
+			}
+		}
+		interval := req.AgentIntervalSecond
+		if interval <= 0 {
+			interval = 30
+		}
+
+		installer := &engine.AgentInstaller{}
+		res := installer.Install(host, serverURL, token, interval)
+		if !res.Success {
+			c.JSON(http.StatusCreated, gin.H{
+				"host":                    host,
+				"agent_install_success":   false,
+				"agent_install_error":     res.Error,
+				"agent_install_output":    res.Output,
+			})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"host":                  host,
+			"agent_install_success": true,
+			"agent_install_output":  res.Output,
+		})
+		return
+	}
+
 	c.JSON(http.StatusCreated, host)
 }
 
