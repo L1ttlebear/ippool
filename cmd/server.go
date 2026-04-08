@@ -68,7 +68,15 @@ func runServer(_ *cobra.Command, _ []string) {
 	telegramToken, _ := config.GetAs[string](config.TelegramBotTokenKey, "")
 	telegramChatID, _ := config.GetAs[string](config.TelegramChatIDKey, "")
 	webhookURL, _ := config.GetAs[string](config.WebhookURLKey, "")
-	n := notifier.New(telegramToken, telegramChatID, webhookURL)
+	notifyTmpl, _ := config.GetAs[string](config.NotifyTemplateKey, "")
+	n := notifier.New(telegramToken, telegramChatID, webhookURL, notifyTmpl)
+
+	// Hot-reload notify template (no restart needed)
+	config.Subscribe(func(e config.ConfigEvent) {
+		if changed, tmpl := config.IsChangedT[string](e, config.NotifyTemplateKey); changed {
+			n.SetTemplate(tmpl)
+		}
+	})
 
 	// 6. Initialize and start Poller
 	poller := engine.NewPoller(sm, hc, exec, ddns, cb, n, ws.GlobalHub)

@@ -68,6 +68,18 @@
         <div class="progress-bar">
           <div class="progress-fill {{.State}}" style="width:50%;" id="progress-{{.ID}}"></div>
         </div>
+        <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.4;"
+             data-traffic-threshold="{{.TrafficThreshold}}"
+             {{with (index $.TrafficMap .ID)}}
+             data-traffic-in="{{.TrafficIn}}" data-traffic-out="{{.TrafficOut}}"
+             {{else}}
+             data-traffic-in="0" data-traffic-out="0"
+             {{end}}
+             id="traffic-meta-{{.ID}}">
+          <div>入站：<span id="traffic-in-{{.ID}}">-</span></div>
+          <div>出站：<span id="traffic-out-{{.ID}}">-</span></div>
+          <div>使用：<span id="traffic-used-{{.ID}}">-</span> / <span id="traffic-threshold-{{.ID}}">-</span></div>
+        </div>
       </div>
       {{end}}
       <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>

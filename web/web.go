@@ -13,6 +13,13 @@ import (
 //go:embed templates/* static/*
 var FS embed.FS
 
+// HostTrafficInfo holds traffic stats for a single host for display.
+type HostTrafficInfo struct {
+	HostID    uint
+	TrafficIn int64 // bytes received (cumulative)
+	TrafficOut int64 // bytes sent (cumulative)
+}
+
 // IndexPageData is the data passed to the index template.
 type IndexPageData struct {
 	Leader          *models.Host
@@ -22,6 +29,8 @@ type IndexPageData struct {
 	RecentLogs      []models.Log
 	LastPoll        time.Time
 	CurrentLeaderID uint
+	// TrafficMap maps host ID -> latest traffic check result
+	TrafficMap      map[uint]HostTrafficInfo
 }
 
 // SettingsPageData is the data passed to the settings template.

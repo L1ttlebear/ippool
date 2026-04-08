@@ -123,7 +123,7 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		}
 	}
 	if open {
-		p.broadcastSummary(db, hosts)
+		p.broadcastSummary(hosts, results)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 			if p.notifier != nil {
 				p.notifier.Send("circuit_open", map[string]any{"circuit_open": true})
 			}
-			p.broadcastSummary(db, retryHosts)
+			p.broadcastSummary(retryHosts, results)
 			return
 		}
 
@@ -188,20 +188,30 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		break
 	}
 
-	p.broadcastSummary(db, hosts)
+	p.broadcastSummary(hosts, results)
 }
 
-func (p *Poller) broadcastSummary(db *gorm.DB, hosts []models.Host) {
+func (p *Poller) broadcastSummary(hosts []models.Host, results []CheckResult) {
 	if p.hub == nil {
 		return
 	}
 
 	leaderID, _ := config.GetAs[uint](config.CurrentLeaderIDKey, uint(0))
+
+	trafficMap := make(map[uint]map[string]int64, len(results))
+	for _, r := range results {
+		trafficMap[r.HostID] = map[string]int64{
+			"in":  r.TrafficIn,
+			"out": r.TrafficOut,
+		}
+	}
+
 	hostSummary := make([]map[string]any, len(hosts))
 	for i, h := range hosts {
 		hostSummary[i] = map[string]any{
-			"id":    h.ID,
-			"state": h.State,
+			"id":                h.ID,
+			"state":             h.State,
+			"traffic_threshold": h.TrafficThreshold,
 		}
 	}
 
@@ -211,6 +221,7 @@ func (p *Poller) broadcastSummary(db *gorm.DB, hosts []models.Host) {
 			"leader_id":    leaderID,
 			"circuit_open": p.cb.IsOpen(),
 			"hosts":        hostSummary,
+			"traffic":      trafficMap,
 		},
 	})
 }

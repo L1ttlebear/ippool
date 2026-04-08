@@ -9,6 +9,7 @@ import (
 	"github.com/L1ttlebear/ippool/database/models"
 	"github.com/L1ttlebear/ippool/engine"
 	"github.com/L1ttlebear/ippool/web"
+	"gorm.io/gorm"
 )
 
 // GetIndex renders the main monitoring page.
@@ -33,6 +34,8 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			}
 		}
 
+		trafficMap := loadLatestTrafficMap(db, hosts)
+
 		data := web.IndexPageData{
 			Leader:          leader,
 			Hosts:           hosts,
@@ -41,6 +44,7 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			RecentLogs:      recentLogs,
 			LastPoll:        time.Now(),
 			CurrentLeaderID: leaderID,
+			TrafficMap:      trafficMap,
 		}
 		web.RenderIndex(c, data)
 	}
@@ -62,4 +66,20 @@ func GetSettings(c *gin.Context) {
 		Hosts:  hosts,
 		Config: cfg,
 	})
+}
+
+func loadLatestTrafficMap(db *gorm.DB, hosts []models.Host) map[uint]web.HostTrafficInfo {
+	m := make(map[uint]web.HostTrafficInfo, len(hosts))
+	for _, h := range hosts {
+		var rec models.CheckRecord
+		if err := db.Where("host_id = ?", h.ID).Order("time DESC").First(&rec).Error; err != nil {
+			continue
+		}
+		m[h.ID] = web.HostTrafficInfo{
+			HostID:     h.ID,
+			TrafficIn:  rec.TrafficIn,
+			TrafficOut: rec.TrafficOut,
+		}
+	}
+	return m
 }

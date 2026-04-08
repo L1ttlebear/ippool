@@ -50,10 +50,23 @@ func sendSnapshot(conn *ws.SafeConn) {
 		circuitOpen = true
 	}
 
+	traffic := make(map[uint]map[string]int64, len(hosts))
+	for _, h := range hosts {
+		var rec models.CheckRecord
+		if err := db.Where("host_id = ?", h.ID).Order("time DESC").First(&rec).Error; err != nil {
+			continue
+		}
+		traffic[h.ID] = map[string]int64{
+			"in":  rec.TrafficIn,
+			"out": rec.TrafficOut,
+		}
+	}
+
 	snapshot := map[string]any{
 		"type": "snapshot",
 		"data": map[string]any{
 			"hosts":        hosts,
+			"traffic":      traffic,
 			"leader_id":    leaderID,
 			"circuit_open": circuitOpen,
 			"last_poll":    time.Now().UTC().Format(time.RFC3339),

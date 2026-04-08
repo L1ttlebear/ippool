@@ -30,7 +30,11 @@ function handleSnapshot(data) {
     if (!data) return;
     updateCircuitBanner(data.circuit_open);
     if (Array.isArray(data.hosts)) {
-        data.hosts.forEach(h => updateHostCard(h.id, h.state));
+        data.hosts.forEach(h => {
+            updateHostCard(h.id, h.state);
+            const t = data.traffic && data.traffic[h.id] ? data.traffic[h.id] : null;
+            updateHostTraffic(h.id, h.traffic_threshold, t);
+        });
     }
     if (data.leader_id) {
         const leaderEl = document.getElementById('leader-name');
@@ -50,7 +54,11 @@ function handlePollSummary(data) {
     if (!data) return;
     updateCircuitBanner(data.circuit_open);
     if (Array.isArray(data.hosts)) {
-        data.hosts.forEach(h => updateHostCard(h.id, h.state));
+        data.hosts.forEach(h => {
+            updateHostCard(h.id, h.state);
+            const t = data.traffic && data.traffic[h.id] ? data.traffic[h.id] : null;
+            updateHostTraffic(h.id, h.traffic_threshold, t);
+        });
     }
 }
 
@@ -71,6 +79,54 @@ function updateHostCard(hostId, newState) {
     const progress = document.getElementById('progress-' + hostId);
     if (progress) {
         progress.className = 'progress-fill ' + newState;
+    }
+}
+
+function fmtBytes(bytes) {
+    const n = Number(bytes || 0);
+    if (!Number.isFinite(n) || n < 0) return '-';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    let v = n;
+    let i = 0;
+    while (v >= 1024 && i < units.length - 1) {
+        v /= 1024;
+        i++;
+    }
+    const fixed = i === 0 ? 0 : (v >= 100 ? 0 : (v >= 10 ? 1 : 2));
+    return `${v.toFixed(fixed)} ${units[i]}`;
+}
+
+function updateHostTraffic(hostId, trafficThreshold, traffic) {
+    const meta = document.getElementById('traffic-meta-' + hostId);
+    if (!meta) return;
+
+    const threshold = Number(trafficThreshold ?? meta.getAttribute('data-traffic-threshold') ?? 0) || 0;
+    const inBytes = traffic && typeof traffic.in !== 'undefined'
+        ? Number(traffic.in) || 0
+        : Number(meta.getAttribute('data-traffic-in')) || 0;
+    const outBytes = traffic && typeof traffic.out !== 'undefined'
+        ? Number(traffic.out) || 0
+        : Number(meta.getAttribute('data-traffic-out')) || 0;
+
+    // Persist latest values for future incremental updates
+    meta.setAttribute('data-traffic-threshold', String(threshold));
+    meta.setAttribute('data-traffic-in', String(inBytes));
+    meta.setAttribute('data-traffic-out', String(outBytes));
+
+    const inEl = document.getElementById('traffic-in-' + hostId);
+    const outEl = document.getElementById('traffic-out-' + hostId);
+    const usedEl = document.getElementById('traffic-used-' + hostId);
+    const thrEl = document.getElementById('traffic-threshold-' + hostId);
+
+    if (inEl) inEl.textContent = fmtBytes(inBytes);
+    if (outEl) outEl.textContent = fmtBytes(outBytes);
+    if (usedEl) usedEl.textContent = fmtBytes(Math.max(inBytes, outBytes));
+    if (thrEl) thrEl.textContent = fmtBytes(threshold);
+
+    const progress = document.getElementById('progress-' + hostId);
+    if (progress && threshold > 0) {
+        const pct = Math.max(0, Math.min(100, (Math.max(inBytes, outBytes) / threshold) * 100));
+        progress.style.width = pct.toFixed(1) + '%';
     }
 }
 
@@ -104,5 +160,13 @@ function prependEvent(data) {
 
 // Only connect on pages that have the event list or host grid (i.e., index page)
 if (document.getElementById('host-grid') || document.getElementById('event-list')) {
+    // Initialize from server-rendered data-* attributes (no WS needed)
+    const metas = document.querySelectorAll('[id^="traffic-meta-"]');
+    metas.forEach(el => {
+        const id = el.id.replace('traffic-meta-', '');
+        const hostId = Number(id);
+        if (!Number.isFinite(hostId)) return;
+        updateHostTraffic(hostId, null, null);
+    });
     connect();
 }
