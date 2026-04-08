@@ -1,6 +1,14 @@
 package config
 
 // AppConfig 系统配置
+type DdnsPoolRule struct {
+	Pool       string `json:"pool"`
+	CFApiToken string `json:"cf_api_token"`
+	CFZoneID   string `json:"cf_zone_id"`
+	RecordName string `json:"record_name"`
+	Enabled    bool   `json:"enabled"`
+}
+
 type AppConfig struct {
 	PollInterval         int    `json:"poll_interval" default:"60"`
 	MaxSSHConcurrency    int    `json:"max_ssh_concurrency" default:"5"`
@@ -17,6 +25,7 @@ type AppConfig struct {
 	AgentSharedToken string `json:"agent_shared_token" default:""`
 	HeartbeatTimeoutSeconds int `json:"heartbeat_timeout_seconds" default:"90"`
 	DefaultDisconnectCommandTemplate string `json:"default_disconnect_command_template" default:"curl -L https://gh-proxy.com/https://github.com/Sagit-chu/flvx/releases/download/2.2.0-beta9/install.sh -o ./install.sh && chmod +x ./install.sh && PROXY_ENABLED=true PROXY_URL=https://gh-proxy.com VERSION=2.2.0-beta9 ./install.sh -a 43.255.159.185:6365 -s 94afbeb3ddc14a2e442338b3fe159db9"`
+	DDNSPoolRules []DdnsPoolRule `json:"ddns_pool_rules" default:"[]"`
 }
 
 const (
@@ -34,4 +43,5 @@ const (
 	AgentSharedTokenKey     = "agent_shared_token"
 	HeartbeatTimeoutSecondsKey = "heartbeat_timeout_seconds"
 	DefaultDisconnectCommandTemplateKey = "default_disconnect_command_template"
+	DDNSPoolRulesKey = "ddns_pool_rules"
 )

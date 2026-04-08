@@ -75,25 +75,16 @@
 
   <!-- DDNS 配置 -->
   <div class="glass-card mb-24">
-    <div class="section-title mb-16">DDNS 配置</div>
-    <div class="section-hint mb-16">Cloudflare DDNS 自动切换配置</div>
+    <div class="section-title mb-16">DDNS 配置（按主机池）</div>
+    <div class="section-hint mb-16">为每个主机池绑定独立域名与 Cloudflare 参数。切换 Leader 时仅更新对应池规则。</div>
     <form id="ddns-form">
-      <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">CF API Token</label>
-        <input class="form-input" type="password" name="cf_api_token" placeholder="留空保持不变"
-          value="{{index .Config "cf_api_token"}}">
-      </div>
-      <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Zone ID</label>
-        <input class="form-input" type="text" name="cf_zone_id" value="{{index .Config "cf_zone_id"}}">
-      </div>
-      <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Record Name</label>
-        <input class="form-input" type="text" name="cf_record_name" value="{{index .Config "cf_record_name"}}">
+      <div id="ddns-rules"></div>
+      <div class="flex gap-8 mb-16">
+        <button class="btn" type="button" onclick="addDDNSRuleRow()">+ 添加域名规则</button>
       </div>
       <div class="flex gap-8">
-        <button class="btn btn-primary" type="button" onclick="saveConfig('ddns-form', ['cf_api_token','cf_zone_id','cf_record_name'])">保存</button>
-        <button class="btn" type="button" onclick="verifyDDNS()">检测 DDNS</button>
+        <button class="btn btn-primary" type="button" onclick="saveDDNSRules()">保存</button>
+        <button class="btn" type="button" onclick="verifyDDNS()">检测当前 Leader 对应 DDNS</button>
       </div>
       <div id="ddns-verify-result" class="ddns-result" style="display:none;"></div>
     </form>
@@ -259,6 +250,7 @@
 {{define "scripts"}}
 <script>
 let hostSaveInProgress = false;
+let ddnsRules = [];
 
 function setHostInstallProgress(visible, message = '正在安装 Agent，请稍候...', percent = null) {
   const box = document.getElementById('host-install-progress');
@@ -525,6 +517,120 @@ async function checkHostSSH(id, name) {
   }
 }
 
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function renderDDNSRules() {
+  const wrap = document.getElementById('ddns-rules');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  if (!Array.isArray(ddnsRules) || ddnsRules.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'section-hint mb-16';
+    empty.textContent = '暂无规则，点击“添加域名规则”创建。';
+    wrap.appendChild(empty);
+    return;
+  }
+
+  ddnsRules.forEach((r, idx) => {
+    const row = document.createElement('div');
+    row.className = 'ddns-rule-row mb-16';
+    row.innerHTML = `
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">主机池名（Pool）</label>
+        <input class="form-input" type="text" data-k="pool" data-i="${idx}" value="${escapeHtml(r.pool || '')}" placeholder="例如 default / hk / us">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">CF API Token</label>
+        <input class="form-input" type="password" data-k="cf_api_token" data-i="${idx}" value="${escapeHtml(r.cf_api_token || '')}" placeholder="留空表示此规则无效">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Zone ID</label>
+        <input class="form-input" type="text" data-k="cf_zone_id" data-i="${idx}" value="${escapeHtml(r.cf_zone_id || '')}">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Record Name（域名）</label>
+        <input class="form-input" type="text" data-k="record_name" data-i="${idx}" value="${escapeHtml(r.record_name || '')}" placeholder="例如 a.b.c">
+      </div>
+      <div class="flex justify-between items-center">
+        <label style="font-size:13px;color:rgba(255,255,255,0.75);">
+          <input type="checkbox" data-k="enabled" data-i="${idx}" ${r.enabled === false ? '' : 'checked'} style="margin-right:8px;"> 启用该规则
+        </label>
+        <button class="btn btn-danger btn-sm" type="button" onclick="removeDDNSRuleRow(${idx})">删除规则</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function addDDNSRuleRow() {
+  if (!Array.isArray(ddnsRules)) ddnsRules = [];
+  ddnsRules.push({ pool: '', cf_api_token: '', cf_zone_id: '', record_name: '', enabled: true });
+  renderDDNSRules();
+}
+
+function removeDDNSRuleRow(idx) {
+  ddnsRules.splice(idx, 1);
+  renderDDNSRules();
+}
+
+function collectDDNSRulesFromForm() {
+  const rows = [];
+  const all = document.querySelectorAll('#ddns-rules [data-i][data-k]');
+  const map = new Map();
+  all.forEach(el => {
+    const i = Number(el.getAttribute('data-i'));
+    const k = el.getAttribute('data-k');
+    if (!map.has(i)) map.set(i, {});
+    const obj = map.get(i);
+    obj[k] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  map.forEach(v => rows.push(v));
+
+  return rows.filter(r => (r.pool || '').trim() !== '').map(r => ({
+    pool: (r.pool || '').trim(),
+    cf_api_token: (r.cf_api_token || '').trim(),
+    cf_zone_id: (r.cf_zone_id || '').trim(),
+    record_name: (r.record_name || '').trim(),
+    enabled: !!r.enabled,
+  }));
+}
+
+async function initDDNSRules() {
+  try {
+    const resp = await fetch('/api/config');
+    const data = await resp.json();
+    ddnsRules = Array.isArray(data.ddns_pool_rules) ? data.ddns_pool_rules : [];
+    if (ddnsRules.length === 0 && (data.cf_record_name || data.cf_zone_id || data.cf_api_token)) {
+      ddnsRules = [{
+        pool: 'default',
+        cf_api_token: data.cf_api_token || '',
+        cf_zone_id: data.cf_zone_id || '',
+        record_name: data.cf_record_name || '',
+        enabled: true,
+      }];
+    }
+  } catch (e) {
+    ddnsRules = [];
+  }
+  renderDDNSRules();
+}
+
+async function saveDDNSRules() {
+  const rules = collectDDNSRulesFromForm();
+  const body = { ddns_pool_rules: rules };
+  const resp = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('保存成功');
+    await initDDNSRules();
+  } else {
+    alert('保存失败: ' + (data.error || ''));
+  }
+}
+
 async function saveConfig(formId, keys) {
   const form = document.getElementById(formId);
   const body = {};
@@ -604,5 +710,7 @@ async function changePassword() {
   if (resp.ok) { msgEl.style.color='#4ade80'; msgEl.textContent='密码修改成功'; }
   else { msgEl.style.color='#f87171'; msgEl.textContent = data.error || '修改失败'; }
 }
+
+initDDNSRules();
 </script>
 {{end}}

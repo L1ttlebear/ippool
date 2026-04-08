@@ -2,6 +2,7 @@ package engine
 
 import (
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/L1ttlebear/ippool/config"
@@ -247,16 +248,31 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 			continue
 		}
 
-		cfToken, _ := config.GetAs[string](config.CFApiTokenKey, "")
-		cfZone, _ := config.GetAs[string](config.CFZoneIDKey, "")
-		cfRecord, _ := config.GetAs[string](config.CFRecordNameKey, "")
-
 		domainMatched := false
 		var resolvedIPs []string
-		ddnsEnabled := cfToken != "" && cfZone != "" && cfRecord != ""
-		if ddnsEnabled {
+		ddnsEnabled := false
+		ddnsDomain := ""
+
+		rules, _ := config.GetAs[[]config.DdnsPoolRule](config.DDNSPoolRulesKey, []config.DdnsPoolRule{})
+		for _, rule := range rules {
+			if !rule.Enabled {
+				continue
+			}
+			if strings.TrimSpace(rule.Pool) != strings.TrimSpace(electionResult.Leader.Pool) {
+				continue
+			}
+			cfToken := strings.TrimSpace(rule.CFApiToken)
+			cfZone := strings.TrimSpace(rule.CFZoneID)
+			cfRecord := strings.TrimSpace(rule.RecordName)
+			if cfToken == "" || cfZone == "" || cfRecord == "" {
+				continue
+			}
+
+			ddnsEnabled = true
+			ddnsDomain = cfRecord
 			if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
-				slog.Error("poller: DDNS update failed", "error", err)
+				slog.Error("poller: DDNS update failed", "pool", electionResult.Leader.Pool, "domain", cfRecord, "error", err)
+				continue
 			}
 
 			ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
@@ -264,6 +280,29 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 			domainMatched = ok
 			if err != nil {
 				slog.Warn("poller: DDNS verify failed", "domain", cfRecord, "expected_ip", electionResult.Leader.IP, "error", err)
+			}
+			break
+		}
+
+		if !ddnsEnabled {
+			cfToken, _ := config.GetAs[string](config.CFApiTokenKey, "")
+			cfZone, _ := config.GetAs[string](config.CFZoneIDKey, "")
+			cfRecord, _ := config.GetAs[string](config.CFRecordNameKey, "")
+			cfToken = strings.TrimSpace(cfToken)
+			cfZone = strings.TrimSpace(cfZone)
+			cfRecord = strings.TrimSpace(cfRecord)
+			if cfToken != "" && cfZone != "" && cfRecord != "" {
+				ddnsEnabled = true
+				ddnsDomain = cfRecord
+				if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
+					slog.Error("poller: DDNS update failed", "error", err)
+				}
+				ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
+				resolvedIPs = ips
+				domainMatched = ok
+				if err != nil {
+					slog.Warn("poller: DDNS verify failed", "domain", cfRecord, "expected_ip", electionResult.Leader.IP, "error", err)
+				}
 			}
 		}
 
@@ -280,7 +319,7 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 				payload["prev_leader_id"] = electionResult.PrevLeader.ID
 			}
 			if ddnsEnabled {
-				payload["ddns_domain"] = cfRecord
+				payload["ddns_domain"] = ddnsDomain
 				payload["ddns_expected_ip"] = electionResult.Leader.IP
 				payload["ddns_resolved_ips"] = resolvedIPs
 				payload["ddns_match"] = domainMatched
@@ -293,10 +332,10 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 					eventType = "ddns_mismatch"
 				}
 				p.notifier.Send(eventType, map[string]any{
-					"domain":      cfRecord,
-					"expected_ip": electionResult.Leader.IP,
+					"domain":       ddnsDomain,
+					"expected_ip":  electionResult.Leader.IP,
 					"resolved_ips": resolvedIPs,
-					"ddns_match":  domainMatched,
+					"ddns_match":   domainMatched,
 				})
 			}
 		}

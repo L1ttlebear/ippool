@@ -29,6 +29,21 @@ func GetConfig(c *gin.Context) {
 		}
 	}
 
+	if rulesVal, ok := cfg[config.DDNSPoolRulesKey]; ok {
+		if arr, ok := rulesVal.([]any); ok {
+			for i := range arr {
+				m, ok := arr[i].(map[string]any)
+				if !ok {
+					continue
+				}
+				if token, ok := m["cf_api_token"].(string); ok && len(token) > 4 {
+					m["cf_api_token"] = strings.Repeat("*", len(token)-4) + token[len(token)-4:]
+				}
+			}
+			cfg[config.DDNSPoolRulesKey] = arr
+		}
+	}
+
 	c.JSON(http.StatusOK, cfg)
 }
 

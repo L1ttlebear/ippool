@@ -14,13 +14,6 @@ import (
 // VerifyDDNS resolves configured DDNS domain and verifies it matches the current leader IP.
 func VerifyDDNS(ddns *engine.DDNSUpdater) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		recordName, _ := config.GetAs[string](config.CFRecordNameKey, "")
-		recordName = strings.TrimSpace(recordName)
-		if recordName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "cf_record_name is empty, please configure DDNS first"})
-			return
-		}
-
 		leaderID, _ := config.GetAs[uint](config.CurrentLeaderIDKey, uint(0))
 		if leaderID == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "no current leader, cannot verify DDNS"})
@@ -34,6 +27,29 @@ func VerifyDDNS(ddns *engine.DDNSUpdater) gin.HandlerFunc {
 			return
 		}
 
+		recordName := ""
+		rules, _ := config.GetAs[[]config.DdnsPoolRule](config.DDNSPoolRulesKey, []config.DdnsPoolRule{})
+		for _, rule := range rules {
+			if !rule.Enabled {
+				continue
+			}
+			if strings.TrimSpace(rule.Pool) != strings.TrimSpace(leader.Pool) {
+				continue
+			}
+			recordName = strings.TrimSpace(rule.RecordName)
+			if recordName != "" {
+				break
+			}
+		}
+		if recordName == "" {
+			recordName, _ = config.GetAs[string](config.CFRecordNameKey, "")
+			recordName = strings.TrimSpace(recordName)
+		}
+		if recordName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no DDNS record configured for current leader pool"})
+			return
+		}
+
 		matched, resolved, err := ddns.VerifyResolvedIP(recordName, leader.IP)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
@@ -43,6 +59,7 @@ func VerifyDDNS(ddns *engine.DDNSUpdater) gin.HandlerFunc {
 				"leader_id":      leader.ID,
 				"leader_name":    leader.Name,
 				"leader_state":   leader.State,
+				"leader_pool":    leader.Pool,
 				"resolved_ips":   resolved,
 				"error":          err.Error(),
 				"status_message": "DDNS 检测失败：域名解析异常",
@@ -62,6 +79,7 @@ func VerifyDDNS(ddns *engine.DDNSUpdater) gin.HandlerFunc {
 			"leader_id":      leader.ID,
 			"leader_name":    leader.Name,
 			"leader_state":   leader.State,
+			"leader_pool":    leader.Pool,
 			"resolved_ips":   resolved,
 			"status_message": statusMessage,
 		})

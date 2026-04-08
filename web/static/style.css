@@ -533,6 +533,13 @@ a:hover { color: rgba(99, 102, 241, 1); }
     background: rgba(248, 113, 113, 0.16);
 }
 
+.ddns-rule-row {
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 14px;
+}
+
 /* SSH 检测状态 */
 .ssh-status {
     font-size: 12px;
