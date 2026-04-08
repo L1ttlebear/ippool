@@ -231,7 +231,13 @@ function inferEventTypeFromItem(item) {
 function resolveHostDisplayFromText(details) {
     const byNameIp = details.match(/([\w.-]+)\s*\(([^)]+)\)/);
     if (byNameIp) {
-        return { hostName: byNameIp[1], hostIP: byNameIp[2] };
+        const maybeName = String(byNameIp[1] || '').trim();
+        const maybeIP = String(byNameIp[2] || '').trim();
+        const looksLikeIP = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(maybeIP) || /:/.test(maybeIP);
+        const looksLikeNumericId = /^\d+$/.test(maybeName);
+        if (looksLikeIP && !looksLikeNumericId) {
+            return { hostName: maybeName, hostIP: maybeIP };
+        }
     }
 
     const hostIdPattern = details.match(/(?:host|主机)\s*[:：]?\s*(\d+)/i) || details.match(/\b(\d+)\s*(?:\(|:)/);
@@ -268,7 +274,7 @@ function parseEventByType(type, raw) {
 
     const hostDisplay = hostRef.hostName && hostRef.hostIP
         ? `${hostRef.hostName} (${hostRef.hostIP})`
-        : (hostRef.hostName || hostMatch?.[1] || (hostRef.hostId ? `ID ${hostRef.hostId}` : ''));
+        : (hostRef.hostName || (hostRef.hostId ? `主机ID ${hostRef.hostId}` : (hostMatch?.[1] && !/^\d+$/.test(hostMatch[1]) ? hostMatch[1] : '')));
     const resolvedIP = hostRef.hostIP || ipMatch?.[0] || '';
 
     if (type === 'state_change') {
