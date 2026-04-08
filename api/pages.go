@@ -1,6 +1,7 @@
 package api
 
 import (
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,6 +49,25 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			}
 		}
 
+		poolCarrierMap := make(map[string][]models.Host)
+		for _, h := range hosts {
+			if !h.IsLeader {
+				continue
+			}
+			pool := h.Pool
+			if pool == "" {
+				pool = "default"
+			}
+			poolCarrierMap[pool] = append(poolCarrierMap[pool], h)
+		}
+		poolCards := make([]web.PoolCarrierCard, 0, len(poolCarrierMap))
+		for pool, hs := range poolCarrierMap {
+			poolCards = append(poolCards, web.PoolCarrierCard{Pool: pool, Hosts: hs})
+		}
+		sort.Slice(poolCards, func(i, j int) bool {
+			return poolCards[i].Pool < poolCards[j].Pool
+		})
+
 		data := web.IndexPageData{
 			Leader:          leader,
 			Hosts:           hosts,
@@ -60,6 +80,7 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			LastPoll:        time.Now(),
 			CurrentLeaderID: leaderID,
 			TrafficMap:      trafficMap,
+			PoolCarriers:    poolCards,
 		}
 		web.RenderIndex(c, data)
 	}

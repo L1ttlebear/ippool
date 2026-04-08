@@ -266,6 +266,68 @@ body.theme-light {
     margin-right: 2px;
 }
 
+.pool-carrier-panel {
+    padding: 14px 16px;
+}
+
+.pool-carrier-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.pool-carrier-toggle {
+    font-size: 12px;
+}
+
+.pool-carrier-body {
+    margin-top: 12px;
+}
+
+.pool-carrier-panel.collapsed .pool-carrier-grid .pool-card:nth-child(n+3) {
+    display: none;
+}
+
+.pool-carrier-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.pool-card {
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.pool-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.pool-card-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pool-inner-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pool-inner-host {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 8px;
+    background: rgba(255,255,255,0.03);
+}
+
 /* 事件流 */
 #event-list {
     display: flex;
@@ -741,6 +803,10 @@ a:hover { color: rgba(99, 102, 241, 1); }
 @media (max-width: 768px) {
     .container {
         padding: 12px !important;
+    }
+
+    .pool-carrier-grid {
+        grid-template-columns: 1fr;
     }
 
     .glass-card {

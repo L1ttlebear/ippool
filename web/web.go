@@ -25,6 +25,11 @@ type HostTrafficInfo struct {
 	NetIface     string
 }
 
+type PoolCarrierCard struct {
+	Pool  string
+	Hosts []models.Host
+}
+
 // IndexPageData is the data passed to the index template.
 type IndexPageData struct {
 	Leader          *models.Host
@@ -39,6 +44,7 @@ type IndexPageData struct {
 	CurrentLeaderID uint
 	// TrafficMap maps host ID -> latest traffic check result
 	TrafficMap map[uint]HostTrafficInfo
+	PoolCarriers []PoolCarrierCard
 }
 
 // SettingsPageData is the data passed to the settings template.

@@ -502,6 +502,15 @@ function initThemeToggle() {
     });
 }
 
+function togglePoolCarrierPanel() {
+    const panel = document.getElementById('pool-carrier-panel');
+    const btn = document.getElementById('pool-carrier-toggle');
+    if (!panel || !btn) return;
+    panel.classList.toggle('collapsed');
+    const collapsed = panel.classList.contains('collapsed');
+    btn.textContent = collapsed ? '展开更多' : '收起';
+}
+
 initThemeToggle();
 enhanceEventList();
 
