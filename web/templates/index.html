@@ -110,15 +110,16 @@
     </div>
 
     <div>
-      <div style="margin-bottom:8px;" class="flex justify-between items-center">
-        <div>
-          <div class="section-title">已用尽主机</div>
-          <div class="section-hint">包含满载（full）或离线主机</div>
+      <div class="glass-card exhausted-card">
+        <div style="margin-bottom:8px;" class="flex justify-between items-center">
+          <div>
+            <div class="section-title">已用尽主机</div>
+            <div class="section-hint">包含满载（full）或离线主机</div>
+          </div>
         </div>
-      </div>
-      <div class="host-stack" id="host-exhausted-list">
+        <div class="host-stack exhausted-scroll" id="host-exhausted-list">
         {{range .ExhaustedHosts}}
-        <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
+        <div class="glass-card exhausted-host-item" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
           <div class="flex justify-between items-center mb-16">
             <div>
               <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
@@ -160,6 +161,7 @@
         {{else}}
         <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无已用尽主机</div>
         {{end}}
+        </div>
       </div>
     </div>
   </div>
