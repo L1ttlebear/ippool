@@ -78,13 +78,16 @@ body.theme-light {
     border-bottom: 1px solid var(--glass-border);
     padding: 14px 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     gap: 12px;
 }
 
 .nav-left {
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .brand {
@@ -101,7 +104,7 @@ body.theme-light {
 .nav-right {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 10px;
     flex-wrap: wrap;
 }
@@ -214,10 +217,11 @@ body.theme-light {
 /* 响应式 */
 @media (max-width: 768px) {
     .host-grid { grid-template-columns: 1fr; }
-    .navbar { padding: 12px 14px; }
+    .navbar { padding: 12px 14px; flex-wrap: wrap; }
     .container { padding: 16px; }
     .brand { font-size: 16px; }
-    .nav-right { gap: 8px; }
+    .nav-left { width: 100%; }
+    .nav-right { gap: 8px; width: 100%; }
     .nav-link { min-height: 34px; padding: 0 12px; }
 }
 
