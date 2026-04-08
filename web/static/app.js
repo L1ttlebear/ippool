@@ -216,9 +216,11 @@ function prependEvent(data) {
     const item = document.createElement('div');
     item.className = 'event-item';
     const time = data.time ? new Date(data.time).toLocaleString('zh-CN') : new Date().toLocaleString('zh-CN');
-    item.innerHTML = `<span class="event-time">${time}</span>
-        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[${eventTypeZh('state_change')}]</span>
-        <span style="margin-left:8px;">主机 ${data.host_id}: ${stateZh(data.old_state)} → ${stateZh(data.new_state)}</span>`;
+    item.innerHTML = `<div class="event-item-head">
+        <span class="event-time">${time}</span>
+        <span class="event-type-badge">${eventTypeZh('state_change')}</span>
+      </div>
+      <div class="event-message">主机 ${data.host_id}: ${stateZh(data.old_state)} → ${stateZh(data.new_state)}</div>`;
     list.insertBefore(item, list.firstChild);
     // Keep at most 20 items
     while (list.children.length > 20) {

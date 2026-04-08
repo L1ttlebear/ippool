@@ -171,9 +171,11 @@
     <div id="event-list">
       {{range .RecentLogs}}
       <div class="event-item">
-        <span class="event-time">{{.Time.ToTime.Format "2006-01-02 15:04:05"}}</span>
-        <span style="margin-left:8px;color:rgba(99,102,241,0.9);">[{{eventTypeZh .MsgType}}]</span>
-        <span style="margin-left:8px;">{{eventMessageZh .MsgType .Message}}</span>
+        <div class="event-item-head">
+          <span class="event-time">{{.Time.ToTime.Format "2006-01-02 15:04:05"}}</span>
+          <span class="event-type-badge">{{eventTypeZh .MsgType}}</span>
+        </div>
+        <div class="event-message">{{eventMessageZh .MsgType .Message}}</div>
       </div>
       {{else}}
       <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无事件记录</div>
