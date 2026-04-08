@@ -162,9 +162,44 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 					"exit_code", disconnectResult.ExitCode,
 				)
 			}
+
+			if electionResult.PrevLeader.State == models.StateFull || electionResult.PrevLeader.State == models.StateDead {
+				if err := db.Model(&models.Host{}).Where("id = ?", electionResult.PrevLeader.ID).Updates(map[string]any{
+					"pre_command":        "",
+					"disconnect_command": "",
+				}).Error; err != nil {
+					slog.Warn("poller: clear commands failed for previous exhausted host", "host_id", electionResult.PrevLeader.ID, "error", err)
+				} else {
+					slog.Info("poller: cleared commands for previous exhausted host", "host_id", electionResult.PrevLeader.ID)
+				}
+			}
+		}
+
+		if !reachability[electionResult.Leader.ID] {
+			slog.Warn("poller: elected leader is not reachable/ssh-available, marking dead and re-electing",
+				"host_id", electionResult.Leader.ID,
+				"attempt", attempt+1,
+			)
+			_ = p.sm.Transition(db, electionResult.Leader.ID, models.StateDead, "leader health/ssh check failed before connect command")
+			if err := db.Find(&retryHosts).Error; err != nil {
+				break
+			}
+			currentLeaderID = 0
+			continue
 		}
 
 		execResult := p.exec.Execute(*electionResult.Leader)
+		if execResult.ExitCode == 0 && (electionResult.Leader.State == models.StateFull || electionResult.Leader.State == models.StateDead) {
+			if err := db.Model(&models.Host{}).Where("id = ?", electionResult.Leader.ID).Updates(map[string]any{
+				"pre_command":        "",
+				"disconnect_command": "",
+			}).Error; err != nil {
+				slog.Warn("poller: clear commands failed for exhausted leader", "host_id", electionResult.Leader.ID, "error", err)
+			} else {
+				slog.Info("poller: cleared commands for exhausted leader", "host_id", electionResult.Leader.ID)
+			}
+		}
+
 		if execResult.ExitCode != 0 {
 			slog.Warn("poller: pre-command failed, marking dead and re-electing",
 				"host_id", electionResult.Leader.ID,

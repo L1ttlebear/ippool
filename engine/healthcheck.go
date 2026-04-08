@@ -102,6 +102,10 @@ func (hc *HealthChecker) checkOne(host models.Host) CheckResult {
 		result.SSHReachable = sshRes.SSHReachable
 		result.SSHError = sshRes.SSHError
 		result.LatencyMs = sshRes.LatencyMs
+		if !sshRes.SSHReachable {
+			result.Reachable = false
+			result.Error = sshRes.SSHError
+		}
 
 		if sshRes.SSHReachable {
 			iface, in, out, err := hc.checkTraffic(host)
@@ -111,7 +115,9 @@ func (hc *HealthChecker) checkOne(host models.Host) CheckResult {
 				result.TrafficOut = out
 			} else {
 				result.SSHReachable = false
+				result.Reachable = false
 				result.SSHError = err.Error()
+				result.Error = err.Error()
 			}
 		}
 	}
@@ -206,10 +212,11 @@ func (hc *HealthChecker) CheckHostSSH(host models.Host) CheckResult {
 	if err != nil {
 		return CheckResult{
 			HostID:       host.ID,
-			Reachable:    true,
+			Reachable:    false,
 			LatencyMs:    latency,
 			SSHReachable: false,
 			SSHError:     err.Error(),
+			Error:        err.Error(),
 		}
 	}
 	_ = client.Close()

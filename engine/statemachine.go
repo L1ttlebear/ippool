@@ -106,9 +106,16 @@ func (sm *StateMachine) ForceSet(db *gorm.DB, hostID uint, state models.HostStat
 
 // ApplyCheckResult decides state transitions based on a health check result.
 func (sm *StateMachine) ApplyCheckResult(db *gorm.DB, host models.Host, result CheckResult) error {
-	if !result.Reachable {
+	if !result.Reachable || !result.SSHReachable {
+		reason := result.Error
+		if reason == "" {
+			reason = result.SSHError
+		}
+		if reason == "" {
+			reason = "health/ssh check failed"
+		}
 		if host.State != models.StateDead {
-			return sm.Transition(db, host.ID, models.StateDead, "health check failed: "+result.Error)
+			return sm.Transition(db, host.ID, models.StateDead, "health check failed: "+reason)
 		}
 		return nil
 	}
