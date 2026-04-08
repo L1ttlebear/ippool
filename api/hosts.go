@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net"
 	"net/http"
 	"strconv"
@@ -82,7 +84,11 @@ func CreateHost(c *gin.Context) {
 	}
 
 	if req.InstallAgent {
-		token, _ := config.GetAs[string](config.AgentSharedTokenKey, "")
+		token, err := ensureAgentSharedToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		serverURL := strings.TrimSpace(req.AgentServerURL)
 		if serverURL == "" {
 			if c.Request.TLS != nil {
@@ -270,7 +276,11 @@ func InstallHostAgent(c *gin.Context) {
 		return
 	}
 
-	token, _ := config.GetAs[string](config.AgentSharedTokenKey, "")
+	token, err := ensureAgentSharedToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	serverURL := strings.TrimSpace(req.AgentServerURL)
 	if serverURL == "" {
 		if c.Request.TLS != nil {
@@ -288,7 +298,7 @@ func InstallHostAgent(c *gin.Context) {
 	res := installer.Install(host, serverURL, token, interval)
 	if !res.Success {
 		c.JSON(http.StatusOK, gin.H{
-			"host":                 host,
+			"host":                  host,
 			"agent_install_success": false,
 			"agent_install_error":   res.Error,
 			"agent_install_output":  res.Output,
@@ -301,4 +311,29 @@ func InstallHostAgent(c *gin.Context) {
 		"agent_install_success": true,
 		"agent_install_output":  res.Output,
 	})
+}
+
+func ensureAgentSharedToken() (string, error) {
+	token, _ := config.GetAs[string](config.AgentSharedTokenKey, "")
+	token = strings.TrimSpace(token)
+	if token != "" {
+		return token, nil
+	}
+
+	generated, err := generateAgentSharedToken()
+	if err != nil {
+		return "", err
+	}
+	if err := config.Set(config.AgentSharedTokenKey, generated); err != nil {
+		return "", err
+	}
+	return generated, nil
+}
+
+func generateAgentSharedToken() (string, error) {
+	buf := make([]byte, 24)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
