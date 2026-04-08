@@ -98,15 +98,21 @@ func (hc *HealthChecker) checkOne(host models.Host) CheckResult {
 	}
 
 	if result.Reachable {
-		iface, in, out, err := hc.checkTraffic(host)
-		if err == nil {
-			result.SSHReachable = true
-			result.NetIface = iface
-			result.TrafficIn = in
-			result.TrafficOut = out
-		} else {
-			result.SSHReachable = false
-			result.SSHError = err.Error()
+		sshRes := hc.CheckHostSSH(host)
+		result.SSHReachable = sshRes.SSHReachable
+		result.SSHError = sshRes.SSHError
+		result.LatencyMs = sshRes.LatencyMs
+
+		if sshRes.SSHReachable {
+			iface, in, out, err := hc.checkTraffic(host)
+			if err == nil {
+				result.NetIface = iface
+				result.TrafficIn = in
+				result.TrafficOut = out
+			} else {
+				result.SSHReachable = false
+				result.SSHError = err.Error()
+			}
 		}
 	}
 
@@ -190,6 +196,29 @@ func parseNetDev(content string) (iface string, in, out int64, err error) {
 		return iface, rxBytes, txBytes, nil
 	}
 	return "", 0, 0, fmt.Errorf("no suitable network interface found in /proc/net/dev")
+}
+
+// CheckHostSSH performs a standalone SSH connectivity check for a single host.
+func (hc *HealthChecker) CheckHostSSH(host models.Host) CheckResult {
+	start := time.Now()
+	client, err := dialSSH(host, 10*time.Second)
+	latency := time.Since(start).Milliseconds()
+	if err != nil {
+		return CheckResult{
+			HostID:       host.ID,
+			Reachable:    true,
+			LatencyMs:    latency,
+			SSHReachable: false,
+			SSHError:     err.Error(),
+		}
+	}
+	_ = client.Close()
+	return CheckResult{
+		HostID:       host.ID,
+		Reachable:    true,
+		LatencyMs:    latency,
+		SSHReachable: true,
+	}
 }
 
 // dialSSH establishes an SSH connection to the host.

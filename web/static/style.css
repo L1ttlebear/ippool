@@ -305,6 +305,21 @@ a:hover { color: rgba(99, 102, 241, 1); }
     background: rgba(248, 113, 113, 0.16);
 }
 
+/* SSH 检测状态 */
+.ssh-status {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--muted-text);
+    max-width: 220px;
+    word-break: break-word;
+}
+.ssh-status.success {
+    color: #4ade80;
+}
+.ssh-status.error {
+    color: #f87171;
+}
+
 /* 分组标题 */
 .section-title { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
 

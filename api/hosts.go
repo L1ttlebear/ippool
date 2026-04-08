@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/L1ttlebear/ippool/database/dbcore"
@@ -163,4 +164,39 @@ func isUniqueConstraintError(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "unique constraint") || strings.Contains(msg, "unique") || strings.Contains(msg, "duplicate")
+}
+
+// CheckHostSSH manually tests SSH connectivity for a host.
+func CheckHostSSH(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	db := dbcore.GetDBInstance()
+	var host models.Host
+	if err := db.First(&host, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "host not found"})
+		return
+	}
+
+	checker := engine.NewHealthChecker(1, nil)
+	result := checker.CheckHostSSH(host)
+
+	status := "ok"
+	if !result.SSHReachable {
+		status = "failed"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"host_id":        host.ID,
+		"host_name":      host.Name,
+		"ip":             host.IP,
+		"ssh_reachable":  result.SSHReachable,
+		"ssh_error":      result.SSHError,
+		"latency_ms":     result.LatencyMs,
+		"checked_at":     time.Now().Format(time.RFC3339),
+		"status":         status,
+	})
 }

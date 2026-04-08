@@ -31,7 +31,7 @@
     <table class="table">
       <thead>
         <tr>
-          <th>名称</th><th>IP</th><th>状态</th><th>优先级</th><th>Pool</th><th>操作</th>
+          <th>名称</th><th>IP</th><th>状态</th><th>SSH检测</th><th>优先级</th><th>Pool</th><th>操作</th>
         </tr>
       </thead>
       <tbody>
@@ -40,6 +40,12 @@
           <td>{{.Name}}</td>
           <td>{{.IP}}</td>
           <td><span class="badge badge-{{.State}}">{{.State}}</span></td>
+          <td>
+            <div id="ssh-status-{{.ID}}" class="ssh-status">未检测</div>
+            <div style="margin-top:6px;">
+              <button class="btn btn-sm" id="ssh-btn-{{.ID}}" onclick="checkHostSSH({{.ID}}, '{{.Name}}')">立即检测</button>
+            </div>
+          </td>
           <td>{{.Priority}}</td>
           <td>{{.Pool}}</td>
           <td>
@@ -48,7 +54,7 @@
           </td>
         </tr>
         {{else}}
-        <tr><td colspan="6" style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;">暂无主机</td></tr>
+        <tr><td colspan="7" style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;">暂无主机</td></tr>
         {{end}}
       </tbody>
     </table>
@@ -275,6 +281,43 @@ async function deleteHost(id, name) {
   const resp = await fetch('/api/hosts/' + id, { method: 'DELETE' });
   if (resp.ok) location.reload();
   else alert('删除失败');
+}
+
+async function checkHostSSH(id, name) {
+  const statusEl = document.getElementById('ssh-status-' + id);
+  const btn = document.getElementById('ssh-btn-' + id);
+  if (!statusEl || !btn) return;
+
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = '检测中...';
+
+  statusEl.className = 'ssh-status';
+  statusEl.textContent = '正在检测 SSH...';
+
+  try {
+    const resp = await fetch('/api/hosts/' + id + '/check-ssh', { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok) {
+      statusEl.className = 'ssh-status error';
+      statusEl.textContent = `失败: ${data.error || '请求异常'}`;
+      return;
+    }
+
+    if (data.ssh_reachable) {
+      statusEl.className = 'ssh-status success';
+      statusEl.textContent = `可连接 (${data.latency_ms || 0} ms)`;
+    } else {
+      statusEl.className = 'ssh-status error';
+      statusEl.textContent = `失败: ${data.ssh_error || '未知错误'}`;
+    }
+  } catch (e) {
+    statusEl.className = 'ssh-status error';
+    statusEl.textContent = '失败: 网络错误或服务异常';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
 }
 
 async function saveConfig(formId, keys) {
