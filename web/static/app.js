@@ -228,12 +228,36 @@ function inferEventTypeFromItem(item) {
     return reverse[badgeText] || 'other';
 }
 
+function resolveHostDisplayFromText(details) {
+    const byNameIp = details.match(/([\w.-]+)\s*\(([^)]+)\)/);
+    if (byNameIp) {
+        return { hostName: byNameIp[1], hostIP: byNameIp[2] };
+    }
+
+    const hostIdPattern = details.match(/(?:host|主机)\s*[:：]?\s*(\d+)/i) || details.match(/\b(\d+)\s*(?:\(|:)/);
+    if (hostIdPattern) {
+        const id = hostIdPattern[1];
+        const card = document.getElementById('host-card-' + id);
+        if (card) {
+            const hostName = card.getAttribute('data-host-name') || '';
+            const hostIP = card.getAttribute('data-host-ip') || '';
+            if (hostName || hostIP) {
+                return { hostName, hostIP, hostId: id };
+            }
+        }
+        return { hostId: id };
+    }
+
+    return {};
+}
+
 function parseEventByType(type, raw) {
     const details = String(raw || '').replace(/\\n/g, '\n').trim();
     if (!details) return { summary: '-', tags: [], status: 'neutral', details: '' };
 
     const ipMatch = details.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
     const hostMatch = details.match(/(?:host|主机)\s*[:：]?\s*([\w.-]+)/i);
+    const hostRef = resolveHostDisplayFromText(details);
     const oldNewMatch = details.match(/(ready|full|dead|可用|满载|不可用)\s*(?:->|→)\s*(ready|full|dead|可用|满载|不可用)/i);
     const exitMatch = details.match(/exit\s*=?\s*([0-9]+)/i);
     const durationMatch = details.match(/duration\s*=?\s*([0-9a-zA-Z:.]+)/i);
@@ -242,16 +266,21 @@ function parseEventByType(type, raw) {
     let tags = [];
     let status = 'neutral';
 
+    const hostDisplay = hostRef.hostName && hostRef.hostIP
+        ? `${hostRef.hostName} (${hostRef.hostIP})`
+        : (hostRef.hostName || hostMatch?.[1] || (hostRef.hostId ? `ID ${hostRef.hostId}` : ''));
+    const resolvedIP = hostRef.hostIP || ipMatch?.[0] || '';
+
     if (type === 'state_change') {
         summary = oldNewMatch ? `状态变更：${oldNewMatch[1]} → ${oldNewMatch[2]}` : summary;
-        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
-        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        if (hostDisplay) tags.push({ label: '主机', value: hostDisplay });
+        if (resolvedIP) tags.push({ label: 'IP', value: resolvedIP });
         if (oldNewMatch) tags.push({ label: '变化', value: `${oldNewMatch[1]} → ${oldNewMatch[2]}` });
         status = /dead|不可用|失败|error/i.test(details) ? 'failed' : 'success';
     } else if (type.startsWith('ddns')) {
         summary = /mismatch|异常|failed|error/i.test(details) ? 'DDNS 异常，目标记录未正确对齐' : 'DDNS 校验/更新完成';
-        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
-        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        if (hostDisplay) tags.push({ label: '主机', value: hostDisplay });
+        if (resolvedIP) tags.push({ label: 'IP', value: resolvedIP });
         const domainMatch = details.match(/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
         if (domainMatch) tags.push({ label: '域名', value: domainMatch[1] });
         status = /mismatch|异常|failed|error|timeout/i.test(details) ? 'failed' : 'success';
@@ -259,14 +288,14 @@ function parseEventByType(type, raw) {
         summary = /failed|error|timeout|refused|denied|not found|失败/i.test(details)
             ? '命令执行失败'
             : '命令执行完成';
-        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
+        if (hostDisplay) tags.push({ label: '主机', value: hostDisplay });
         if (exitMatch) tags.push({ label: '退出码', value: exitMatch[1] });
         if (durationMatch) tags.push({ label: '耗时', value: durationMatch[1] });
-        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        if (resolvedIP) tags.push({ label: 'IP', value: resolvedIP });
         status = exitMatch ? (exitMatch[1] === '0' ? 'success' : 'failed') : (/failed|error|失败|timeout/i.test(details) ? 'failed' : 'success');
     } else {
-        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
-        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        if (hostDisplay) tags.push({ label: '主机', value: hostDisplay });
+        if (resolvedIP) tags.push({ label: 'IP', value: resolvedIP });
         status = /failed|error|失败|异常|timeout/i.test(details) ? 'failed' : (/success|ok|成功/i.test(details) ? 'success' : 'neutral');
     }
 

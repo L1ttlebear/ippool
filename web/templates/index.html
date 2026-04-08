@@ -64,7 +64,7 @@
       </div>
       <div class="host-grid" id="host-grid">
         {{range .ActiveHosts}}
-        <div class="glass-card" id="host-card-{{.ID}}">
+        <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
       <div class="flex justify-between items-center mb-16">
         <div>
           <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
@@ -118,7 +118,7 @@
       </div>
       <div class="host-stack" id="host-exhausted-list">
         {{range .ExhaustedHosts}}
-        <div class="glass-card" id="host-card-{{.ID}}">
+        <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
           <div class="flex justify-between items-center mb-16">
             <div>
               <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
