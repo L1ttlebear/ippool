@@ -192,8 +192,8 @@
       <input class="form-input" type="text" id="host-pool" value="default">
     </div>
     <div class="mb-16">
-      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">流量阈值（字节，0=不限制）</label>
-      <input class="form-input" type="number" id="host-traffic-threshold" value="0">
+      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">流量阈值（GB，0=不限制）</label>
+      <input class="form-input" type="number" step="0.01" id="host-traffic-threshold" value="0">
     </div>
     <div class="mb-16">
       <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">连接命令（原前置命令，Shell 命令或 HTTP URL）</label>
@@ -248,7 +248,7 @@ async function editHost(id) {
   document.getElementById('host-ssh-password').value = '';
   document.getElementById('host-priority').value = h.priority;
   document.getElementById('host-pool').value = h.pool;
-  document.getElementById('host-traffic-threshold').value = h.traffic_threshold;
+  document.getElementById('host-traffic-threshold').value = ((Number(h.traffic_threshold) || 0) / (1024 ** 3)).toFixed(2).replace(/\.00$/, '');
   document.getElementById('host-pre-command').value = h.pre_command;
   document.getElementById('host-disconnect-command').value = h.disconnect_command || '';
   document.getElementById('host-modal-error').style.display = 'none';
@@ -265,7 +265,7 @@ async function saveHost() {
     ssh_password: document.getElementById('host-ssh-password').value,
     priority: parseInt(document.getElementById('host-priority').value) || 1,
     pool: document.getElementById('host-pool').value || 'default',
-    traffic_threshold: parseInt(document.getElementById('host-traffic-threshold').value) || 0,
+    traffic_threshold: Math.max(0, Math.round((parseFloat(document.getElementById('host-traffic-threshold').value) || 0) * (1024 ** 3))),
     pre_command: document.getElementById('host-pre-command').value,
     disconnect_command: document.getElementById('host-disconnect-command').value,
   };
