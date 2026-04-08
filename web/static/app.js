@@ -209,19 +209,171 @@ function updateCircuitBanner(open) {
     }
 }
 
+function inferEventTypeFromItem(item) {
+    const explicit = item.getAttribute('data-event-type');
+    if (explicit) return explicit;
+
+    const badgeText = (item.querySelector('.event-type-badge')?.textContent || '').trim();
+    const reverse = {
+        '状态变更': 'state_change',
+        '主机切换': 'leader_changed',
+        '熔断触发': 'circuit_open',
+        '熔断恢复': 'circuit_close',
+        'DDNS 更新': 'ddns_update',
+        'DDNS 校验': 'ddns_match',
+        'DDNS 异常': 'ddns_mismatch',
+        '执行结果': 'exec',
+        '测试通知': 'test',
+    };
+    return reverse[badgeText] || 'other';
+}
+
+function parseEventByType(type, raw) {
+    const details = String(raw || '').replace(/\\n/g, '\n').trim();
+    if (!details) return { summary: '-', tags: [], status: 'neutral', details: '' };
+
+    const ipMatch = details.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
+    const hostMatch = details.match(/(?:host|主机)\s*[:：]?\s*([\w.-]+)/i);
+    const oldNewMatch = details.match(/(ready|full|dead|可用|满载|不可用)\s*(?:->|→)\s*(ready|full|dead|可用|满载|不可用)/i);
+    const exitMatch = details.match(/exit\s*=?\s*([0-9]+)/i);
+    const durationMatch = details.match(/duration\s*=?\s*([0-9a-zA-Z:.]+)/i);
+
+    let summary = details.split('\n')[0].replace(/\s+/g, ' ').trim();
+    let tags = [];
+    let status = 'neutral';
+
+    if (type === 'state_change') {
+        summary = oldNewMatch ? `状态变更：${oldNewMatch[1]} → ${oldNewMatch[2]}` : summary;
+        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
+        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        if (oldNewMatch) tags.push({ label: '变化', value: `${oldNewMatch[1]} → ${oldNewMatch[2]}` });
+        status = /dead|不可用|失败|error/i.test(details) ? 'failed' : 'success';
+    } else if (type.startsWith('ddns')) {
+        summary = /mismatch|异常|failed|error/i.test(details) ? 'DDNS 异常，目标记录未正确对齐' : 'DDNS 校验/更新完成';
+        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
+        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        const domainMatch = details.match(/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+        if (domainMatch) tags.push({ label: '域名', value: domainMatch[1] });
+        status = /mismatch|异常|failed|error|timeout/i.test(details) ? 'failed' : 'success';
+    } else if (type === 'exec') {
+        summary = /failed|error|timeout|refused|denied|not found|失败/i.test(details)
+            ? '命令执行失败'
+            : '命令执行完成';
+        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
+        if (exitMatch) tags.push({ label: '退出码', value: exitMatch[1] });
+        if (durationMatch) tags.push({ label: '耗时', value: durationMatch[1] });
+        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        status = exitMatch ? (exitMatch[1] === '0' ? 'success' : 'failed') : (/failed|error|失败|timeout/i.test(details) ? 'failed' : 'success');
+    } else {
+        if (hostMatch) tags.push({ label: '主机', value: hostMatch[1] });
+        if (ipMatch) tags.push({ label: 'IP', value: ipMatch[0] });
+        status = /failed|error|失败|异常|timeout/i.test(details) ? 'failed' : (/success|ok|成功/i.test(details) ? 'success' : 'neutral');
+    }
+
+    if (summary.length > 140) summary = `${summary.slice(0, 140)}...`;
+    return { summary, tags: tags.slice(0, 4), status, details };
+}
+
+function enhanceEventItem(item) {
+    if (!item || item.getAttribute('data-enhanced') === 'true') return;
+    const messageEl = item.querySelector('.event-message');
+    if (!messageEl) return;
+
+    const eventType = inferEventTypeFromItem(item);
+    const rawText = messageEl.textContent || '';
+    const { summary, details, tags, status } = parseEventByType(eventType, rawText);
+    const isLong = details.length > 180 || details.includes('\n');
+
+    item.classList.remove('event-success', 'event-failed');
+    if (status === 'success') item.classList.add('event-success');
+    if (status === 'failed') item.classList.add('event-failed');
+
+    messageEl.innerHTML = '';
+
+    const summaryEl = document.createElement('div');
+    summaryEl.className = 'event-summary';
+    summaryEl.textContent = summary;
+    messageEl.appendChild(summaryEl);
+
+    if (tags.length > 0) {
+        const metaWrap = document.createElement('div');
+        metaWrap.className = 'event-meta-cards';
+        tags.forEach(tag => {
+            const card = document.createElement('div');
+            card.className = 'event-meta-card';
+
+            const label = document.createElement('div');
+            label.className = 'event-meta-label';
+            label.textContent = tag.label;
+
+            const value = document.createElement('div');
+            value.className = 'event-meta-value';
+            value.textContent = tag.value;
+
+            card.appendChild(label);
+            card.appendChild(value);
+            metaWrap.appendChild(card);
+        });
+        messageEl.appendChild(metaWrap);
+    }
+
+    if (isLong) {
+        const detailsEl = document.createElement('details');
+        detailsEl.className = 'event-details';
+
+        const summaryToggle = document.createElement('summary');
+        summaryToggle.textContent = '查看详情';
+
+        const pre = document.createElement('pre');
+        pre.className = 'event-details-pre';
+        pre.textContent = details;
+
+        detailsEl.appendChild(summaryToggle);
+        detailsEl.appendChild(pre);
+        messageEl.appendChild(detailsEl);
+    }
+
+    item.setAttribute('data-enhanced', 'true');
+}
+
+function enhanceEventList() {
+    const list = document.getElementById('event-list');
+    if (!list) return;
+    list.querySelectorAll('.event-item').forEach(enhanceEventItem);
+}
+
 // 在事件流顶部插入新事件
 function prependEvent(data) {
     const list = document.getElementById('event-list');
     if (!list) return;
     const item = document.createElement('div');
     item.className = 'event-item';
-    const time = data.time ? new Date(data.time).toLocaleString('zh-CN') : new Date().toLocaleString('zh-CN');
-    item.innerHTML = `<div class="event-item-head">
-        <span class="event-time">${time}</span>
-        <span class="event-type-badge">${eventTypeZh('state_change')}</span>
-      </div>
-      <div class="event-message">主机 ${data.host_id}: ${stateZh(data.old_state)} → ${stateZh(data.new_state)}</div>`;
+    item.setAttribute('data-event-type', 'state_change');
+
+    const head = document.createElement('div');
+    head.className = 'event-item-head';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'event-time';
+    timeEl.textContent = data.time ? new Date(data.time).toLocaleString('zh-CN') : new Date().toLocaleString('zh-CN');
+
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'event-type-badge';
+    badgeEl.textContent = eventTypeZh('state_change');
+
+    head.appendChild(timeEl);
+    head.appendChild(badgeEl);
+
+    const msg = document.createElement('div');
+    msg.className = 'event-message';
+    msg.textContent = `主机 ${data.host_id}: ${stateZh(data.old_state)} → ${stateZh(data.new_state)}`;
+
+    item.appendChild(head);
+    item.appendChild(msg);
+
+    enhanceEventItem(item);
     list.insertBefore(item, list.firstChild);
+
     // Keep at most 20 items
     while (list.children.length > 20) {
         list.removeChild(list.lastChild);
@@ -255,6 +407,7 @@ function initThemeToggle() {
 }
 
 initThemeToggle();
+enhanceEventList();
 
 // Only connect on pages that have the event list or host grid (i.e., index page)
 if (document.getElementById('host-grid') || document.getElementById('event-list')) {

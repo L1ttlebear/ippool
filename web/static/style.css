@@ -220,6 +220,18 @@ body.theme-light {
     border-radius: 12px;
     padding: 10px 12px;
 }
+
+.event-item.event-success {
+    border-color: rgba(74, 222, 128, 0.72);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.18) inset;
+    background: rgba(34, 197, 94, 0.10);
+}
+
+.event-item.event-failed {
+    border-color: rgba(248, 113, 113, 0.78);
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.20) inset;
+    background: rgba(239, 68, 68, 0.10);
+}
 .event-item-head {
     display: flex;
     align-items: center;
@@ -241,8 +253,66 @@ body.theme-light {
 }
 .event-message {
     line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.event-summary {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-color);
+}
+
+.event-meta-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.event-meta-card {
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.event-meta-label {
+    font-size: 11px;
+    color: var(--muted-text);
+    margin-bottom: 4px;
+}
+
+.event-meta-value {
+    font-size: 12px;
+    color: var(--text-color);
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.event-details {
+    margin-top: 10px;
+}
+
+.event-details > summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(129, 140, 248, 0.98);
+    user-select: none;
+}
+
+.event-details-pre {
+    margin: 8px 0 0;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.04);
     white-space: pre-wrap;
     word-break: break-word;
+    font-size: 12px;
+    line-height: 1.5;
+    max-height: 240px;
+    overflow: auto;
 }
 
 /* 模态框 */
