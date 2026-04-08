@@ -111,10 +111,26 @@
         </div>
       </div>
 
-      <!-- 最近事件流 -->
-      <div class="glass-card">
-        <div class="section-title mb-16">最近事件</div>
-        <div class="section-hint" style="margin-bottom:16px;">系统最近的自动操作记录</div>
+      <!-- 最近事件流（整卡可折叠，默认仅显示最近一条） -->
+      <details class="glass-card recent-events-card">
+        <summary class="recent-events-summary">
+          <div>
+            <div class="section-title">最近事件</div>
+            <div class="section-hint">系统最近的自动操作记录</div>
+          </div>
+          <div class="recent-events-latest" id="recent-events-latest">
+            {{if gt (len .RecentLogs) 0}}
+              {{with index .RecentLogs 0}}
+              <span class="event-time" id="recent-card-latest-time">{{.Time.ToTime.Format "2006-01-02 15:04:05"}}</span>
+              <span class="event-type-badge" id="recent-card-latest-type">{{eventTypeZh .MsgType}}</span>
+              {{end}}
+            {{else}}
+              <span class="event-time" id="recent-card-latest-time">暂无事件</span>
+              <span class="event-type-badge" id="recent-card-latest-type">-</span>
+            {{end}}
+          </div>
+        </summary>
+
         <div id="event-list">
           {{range .RecentLogs}}
           <div class="event-item">
@@ -128,7 +144,7 @@
           <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无事件记录</div>
           {{end}}
         </div>
-      </div>
+      </details>
     </div>
 
     <div class="monitor-right">

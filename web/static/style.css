@@ -395,6 +395,37 @@ body.theme-light {
     overflow: auto;
 }
 
+.recent-events-card {
+    padding: 16px;
+}
+
+.recent-events-summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.recent-events-summary::-webkit-details-marker {
+    display: none;
+}
+
+.recent-events-latest {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recent-events-card:not([open]) #event-list {
+    display: none;
+}
+
+.recent-events-card[open] #event-list {
+    margin-top: 14px;
+}
+
 /* 模态框 */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; }
 .modal-overlay.active { display: flex; }

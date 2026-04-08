@@ -398,6 +398,27 @@ function makeEventItemCollapsible(item, openByDefault = false) {
     item.setAttribute('data-collapsible', 'true');
 }
 
+function refreshRecentEventsLatest() {
+    const latestBox = document.getElementById('recent-events-latest');
+    if (!latestBox) return;
+
+    const first = document.querySelector('#event-list .event-item');
+    const timeEl = document.getElementById('recent-card-latest-time');
+    const typeEl = document.getElementById('recent-card-latest-type');
+    if (!timeEl || !typeEl) return;
+
+    if (!first) {
+        timeEl.textContent = '暂无事件';
+        typeEl.textContent = '-';
+        return;
+    }
+
+    const firstTime = first.querySelector('.event-item-head .event-time')?.textContent?.trim() || '暂无事件';
+    const firstType = first.querySelector('.event-item-head .event-type-badge')?.textContent?.trim() || '-';
+    timeEl.textContent = firstTime;
+    typeEl.textContent = firstType;
+}
+
 function enhanceEventList() {
     const list = document.getElementById('event-list');
     if (!list) return;
@@ -406,6 +427,7 @@ function enhanceEventList() {
         enhanceEventItem(item);
         makeEventItemCollapsible(item, idx === 0);
     });
+    refreshRecentEventsLatest();
 }
 
 // 在事件流顶部插入新事件
@@ -450,6 +472,8 @@ function prependEvent(data) {
     while (list.children.length > 20) {
         list.removeChild(list.lastChild);
     }
+
+    refreshRecentEventsLatest();
 }
 
 function applyTheme(theme) {
