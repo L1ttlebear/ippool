@@ -60,6 +60,19 @@
     </table>
   </div>
 
+  <!-- 默认模板 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">默认命令模板</div>
+    <div class="section-hint mb-16">添加主机时，若未填写“弃用连接命令”将自动使用此模板</div>
+    <form id="template-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">默认弃用连接命令模板</label>
+        <textarea class="form-input" name="default_disconnect_command_template" rows="5" style="resize:vertical;white-space:pre-wrap;">{{index .Config "default_disconnect_command_template"}}</textarea>
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveConfig('template-form', ['default_disconnect_command_template'])">保存</button>
+    </form>
+  </div>
+
   <!-- DDNS 配置 -->
   <div class="glass-card mb-24">
     <div class="section-title mb-16">DDNS 配置</div>
@@ -115,6 +128,18 @@
         <button class="btn btn-primary" type="button" onclick="saveConfig('notify-form', ['telegram_bot_token','telegram_chat_id','webhook_url','notify_template'])">保存</button>
         <button class="btn btn-primary" type="button" onclick="testNotify()">测试通知</button>
       </div>
+    </form>
+  </div>
+
+  <!-- 命令模板 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">命令模板</div>
+    <div class="section-hint mb-16">新建主机时默认填充的弃用连接命令</div>
+    <form id="command-template-form">
+      <div class="mb-16">
+        <textarea class="form-input" name="default_disconnect_command_template" rows="4" style="resize:vertical;white-space:pre-wrap;">{{index .Config "default_disconnect_command_template"}}</textarea>
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveConfig('command-template-form', ['default_disconnect_command_template'])">保存</button>
     </form>
   </div>
 
@@ -238,7 +263,8 @@ function openAddHostModal() {
   document.getElementById('host-pool').value = 'default';
   document.getElementById('host-traffic-threshold').value = '0';
   document.getElementById('host-pre-command').value = '';
-  document.getElementById('host-disconnect-command').value = 'curl -L https://gh-proxy.com/https://github.com/Sagit-chu/flvx/releases/download/2.2.0-beta9/install.sh -o ./install.sh && chmod +x ./install.sh && PROXY_ENABLED=true PROXY_URL=https://gh-proxy.com VERSION=2.2.0-beta9 ./install.sh -a 43.255.159.185:6365 -s 94afbeb3ddc14a2e442338b3fe159db9';
+  const templateEl = document.querySelector('#command-template-form [name="default_disconnect_command_template"]');
+  document.getElementById('host-disconnect-command').value = templateEl ? templateEl.value : '';
   document.getElementById('host-install-agent').checked = true;
   document.getElementById('host-agent-server-url').value = '';
   document.getElementById('host-modal-error').style.display = 'none';
