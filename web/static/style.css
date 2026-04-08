@@ -208,11 +208,21 @@ body.theme-light {
 .host-stack { display: flex; flex-direction: column; gap: 14px; }
 
 .exhausted-card {
-    padding: 16px;
+    padding: 0;
     height: 100%;
     min-height: 420px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.exhausted-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .exhausted-scroll {
@@ -220,7 +230,9 @@ body.theme-light {
     min-height: 220px;
     max-height: 560px;
     overflow-y: auto;
-    padding-right: 6px;
+    padding: 12px 10px 12px 12px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.06);
 }
 
 .exhausted-scroll::-webkit-scrollbar {
@@ -238,7 +250,8 @@ body.theme-light {
 }
 
 .exhausted-host-item {
-    padding: 16px;
+    padding: 14px;
+    margin-right: 2px;
 }
 
 /* 事件流 */
