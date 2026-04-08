@@ -245,6 +245,27 @@ body.theme-light {
 a { color: rgba(99, 102, 241, 0.9); text-decoration: none; }
 a:hover { color: rgba(99, 102, 241, 1); }
 
+/* DDNS 检测结果 */
+.ddns-result {
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.06);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: var(--text-color);
+}
+.ddns-result.success {
+    border-color: rgba(74, 222, 128, 0.55);
+    background: rgba(74, 222, 128, 0.16);
+}
+.ddns-result.error {
+    border-color: rgba(248, 113, 113, 0.55);
+    background: rgba(248, 113, 113, 0.16);
+}
+
 /* 分组标题 */
 .section-title { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
 

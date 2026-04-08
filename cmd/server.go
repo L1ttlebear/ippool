@@ -133,6 +133,9 @@ func runServer(_ *cobra.Command, _ []string) {
 		// Notify API
 		auth.POST("/api/notify/test", api.TestNotify(n))
 
+		// DDNS API
+		auth.POST("/api/ddns/verify", api.VerifyDDNS(ddns))
+
 		// Account API
 		auth.PUT("/api/account/password", api.ChangePassword)
 

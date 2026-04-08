@@ -67,7 +67,11 @@
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Record Name</label>
         <input class="form-input" type="text" name="cf_record_name" value="{{index .Config "cf_record_name"}}">
       </div>
-      <button class="btn btn-primary" type="button" onclick="saveConfig('ddns-form', ['cf_api_token','cf_zone_id','cf_record_name'])">保存</button>
+      <div class="flex gap-8">
+        <button class="btn btn-primary" type="button" onclick="saveConfig('ddns-form', ['cf_api_token','cf_zone_id','cf_record_name'])">保存</button>
+        <button class="btn" type="button" onclick="verifyDDNS()">检测 DDNS</button>
+      </div>
+      <div id="ddns-verify-result" class="ddns-result" style="display:none;"></div>
     </form>
   </div>
 
@@ -286,6 +290,47 @@ async function testNotify() {
   const resp = await fetch('/api/notify/test', { method: 'POST' });
   const data = await resp.json();
   alert(resp.ok ? '测试通知已发送' : '发送失败: ' + (data.error || ''));
+}
+
+async function verifyDDNS() {
+  const resultEl = document.getElementById('ddns-verify-result');
+  resultEl.style.display = 'block';
+  resultEl.className = 'ddns-result';
+  resultEl.textContent = '正在检测 DDNS，请稍候...';
+
+  try {
+    const resp = await fetch('/api/ddns/verify', { method: 'POST' });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      resultEl.className = 'ddns-result error';
+      resultEl.textContent = '检测失败：' + (data.error || '请求异常');
+      return;
+    }
+
+    const resolved = Array.isArray(data.resolved_ips) && data.resolved_ips.length > 0
+      ? data.resolved_ips.join(', ')
+      : '-';
+
+    const lines = [
+      data.status_message || 'DDNS 检测完成',
+      `域名: ${data.domain || '-'}`,
+      `匹配主机: ${data.leader_name || '-'} (ID:${data.leader_id || '-'})`,
+      `主机状态: ${data.leader_state || '-'}`,
+      `期望 IP: ${data.expected_ip || '-'}`,
+      `解析 IP: ${resolved}`,
+    ];
+
+    if (data.ok) {
+      resultEl.className = 'ddns-result success';
+    } else {
+      resultEl.className = 'ddns-result error';
+    }
+    resultEl.textContent = lines.join('\n');
+  } catch (e) {
+    resultEl.className = 'ddns-result error';
+    resultEl.textContent = '检测失败：网络错误或服务异常';
+  }
 }
 
 async function changePassword() {
