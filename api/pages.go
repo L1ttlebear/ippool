@@ -36,9 +36,23 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 
 		trafficMap := loadLatestTrafficMap(db, hosts)
 
+		activeHosts := make([]models.Host, 0, len(hosts))
+		exhaustedHosts := make([]models.Host, 0, len(hosts))
+		for _, h := range hosts {
+			info, ok := trafficMap[h.ID]
+			online := ok && info.Reachable
+			if !online || h.State == models.StateFull || h.State == models.StateDead {
+				exhaustedHosts = append(exhaustedHosts, h)
+			} else {
+				activeHosts = append(activeHosts, h)
+			}
+		}
+
 		data := web.IndexPageData{
 			Leader:          leader,
 			Hosts:           hosts,
+			ActiveHosts:     activeHosts,
+			ExhaustedHosts:  exhaustedHosts,
 			Domain:          domain,
 			CircuitOpen:     cb.IsOpen(),
 			NoHosts:         len(hosts) == 0,

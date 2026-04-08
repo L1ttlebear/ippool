@@ -248,6 +248,7 @@ func (p *Poller) broadcastSummary(hosts []models.Host, results []CheckResult) {
 	trafficMap := make(map[uint]map[string]any, len(results))
 	for _, r := range results {
 		trafficMap[r.HostID] = map[string]any{
+			"reachable":     r.Reachable,
 			"in":            r.TrafficIn,
 			"out":           r.TrafficOut,
 			"ssh_reachable": r.SSHReachable,

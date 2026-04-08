@@ -29,6 +29,8 @@ type HostTrafficInfo struct {
 type IndexPageData struct {
 	Leader          *models.Host
 	Hosts           []models.Host
+	ActiveHosts     []models.Host
+	ExhaustedHosts  []models.Host
 	Domain          string
 	CircuitOpen     bool
 	NoHosts         bool
