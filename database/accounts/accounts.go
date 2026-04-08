@@ -75,3 +75,28 @@ func GetUserByUUID(id string) (models.User, error) {
 	err := db.Where("uuid = ?", id).First(&user).Error
 	return user, err
 }
+
+// ChangePassword verifies old password and updates to new password for a user UUID.
+func ChangePassword(uuid, oldPasswd, newPasswd string) error {
+	db := dbcore.GetDBInstance()
+
+	var user models.User
+	if err := db.Where("uuid = ?", uuid).First(&user).Error; err != nil {
+		return fmt.Errorf("user not found")
+	}
+	if hashPasswd(oldPasswd) != user.Passwd {
+		return fmt.Errorf("old password incorrect")
+	}
+
+	result := db.Model(&models.User{}).Where("uuid = ?", uuid).Updates(map[string]any{
+		"passwd":     hashPasswd(newPasswd),
+		"updated_at": models.FromTime(time.Now()),
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("password not updated")
+	}
+	return nil
+}
