@@ -1066,3 +1066,180 @@ body {
         top: auto;
     }
 }
+
+/* --- Desktop target style (match provided reference) --- */
+@media (min-width: 1024px) {
+    body {
+        background: #f3f5fa !important;
+        color: #0f172a;
+        font-size: 13px;
+    }
+
+    .navbar {
+        position: static;
+        min-height: 30px;
+        padding: 6px 12px;
+        border-bottom: 0;
+        background: transparent;
+    }
+
+    .brand,
+    .brand-link {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: #111827;
+    }
+
+    .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .brand-logo svg,
+    .brand-logo img {
+        width: 14px;
+        height: 14px;
+        display: block;
+    }
+
+    .container {
+        max-width: 1520px;
+        margin: 0 auto;
+        padding: 10px 14px 18px;
+    }
+
+    .settings-layout {
+        grid-template-columns: 170px minmax(0, 1fr) !important;
+        gap: 12px !important;
+        align-items: start;
+    }
+
+    .side-menu {
+        width: 170px !important;
+        min-height: calc(100vh - 44px);
+        top: 8px;
+        padding: 8px;
+        border-radius: 10px;
+        box-shadow: none;
+    }
+
+    .side-brand {
+        font-size: 10px;
+        margin: 2px 2px 8px;
+        color: #111827;
+    }
+
+    .side-menu-title {
+        font-size: 10px;
+        margin: 4px 2px;
+        color: #9ca3af;
+    }
+
+    .side-menu-link,
+    .side-menu-btn {
+        min-height: 28px;
+        height: 28px;
+        font-size: 11px;
+        border-radius: 7px;
+        padding: 0 8px;
+        gap: 6px;
+    }
+
+    .side-icon {
+        width: 13px;
+        font-size: 11px;
+    }
+
+    .side-menu-footer {
+        padding: 10px 2px 2px;
+    }
+
+    .side-footer-label,
+    .side-footer-version {
+        font-size: 9px;
+    }
+
+    .settings-main {
+        min-width: 0;
+    }
+
+    .monitor-layout {
+        grid-template-columns: minmax(0, 1fr) 300px !important;
+        gap: 12px;
+    }
+
+    .monitor-right {
+        position: static !important;
+        top: auto !important;
+    }
+
+    .glass-card {
+        border-radius: 10px;
+        border: 1px solid #e5e7ef;
+        box-shadow: none;
+        padding: 12px;
+    }
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .section-hint {
+        font-size: 10px;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .host-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+    }
+
+    .exhausted-panel {
+        min-height: 470px;
+        padding: 0;
+    }
+
+    .exhausted-header {
+        padding: 10px 12px;
+        background: #f4f5ff;
+        border-bottom: 1px solid #e3e5f5;
+    }
+
+    .exhausted-scroll {
+        min-height: 390px;
+        max-height: 620px;
+        padding: 9px;
+        background: #f8f8fc;
+    }
+
+    .event-item {
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    .btn,
+    .form-input,
+    .badge {
+        font-size: 11px;
+    }
+
+    .btn {
+        min-height: 28px;
+        border-radius: 7px;
+        padding: 0 10px;
+    }
+
+    .form-input {
+        min-height: 30px;
+        border-radius: 7px;
+        padding: 5px 9px;
+    }
+
+    .mb-24 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 8px; }
+}
