@@ -113,6 +113,7 @@ func runServer(_ *cobra.Command, _ []string) {
 		// Pages
 		auth.GET("/", api.GetIndex(cb))
 		auth.GET("/settings", api.GetSettings)
+		auth.GET("/appearance", api.GetAppearance)
 		auth.GET("/logout", api.GetLogout)
 
 		// Host API

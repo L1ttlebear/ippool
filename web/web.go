@@ -140,6 +140,15 @@ func RenderSettings(c *gin.Context, data SettingsPageData) {
 	}
 }
 
+// RenderAppearance renders the appearance page.
+func RenderAppearance(c *gin.Context, data SettingsPageData) {
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	t := newTmpl("appearance.html")
+	if err := t.ExecuteTemplate(c.Writer, "base.html", data); err != nil {
+		c.String(http.StatusInternalServerError, "template error: %v", err)
+	}
+}
+
 // RenderLogin renders the login page.
 func RenderLogin(c *gin.Context, data LoginPageData) {
 	c.Header("Content-Type", "text/html; charset=utf-8")

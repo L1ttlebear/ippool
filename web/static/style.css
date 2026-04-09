@@ -216,8 +216,8 @@ body.theme-light {
 /* 主机卡片布局 */
 .monitor-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 18px;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 16px;
     align-items: start;
 }
 
@@ -231,7 +231,7 @@ body.theme-light {
     align-self: start;
 }
 
-.host-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.host-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .host-stack { display: flex; flex-direction: column; gap: 14px; }
 
 .exhausted-panel {
@@ -936,18 +936,18 @@ body {
 }
 
 .container {
-    max-width: 100%;
-    padding: 12px;
+    max-width: 1580px;
+    padding: 16px 20px;
 }
 
 .settings-layout {
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 16px;
 }
 
 .side-menu {
-    top: 60px;
-    width: 180px;
+    top: 64px;
+    width: 220px;
     padding: 10px;
     border-radius: 12px;
     background: #ffffff;
@@ -969,13 +969,13 @@ body {
 
 .side-menu-link,
 .side-menu-btn {
-    min-height: 34px;
+    min-height: 36px;
     border-radius: 8px;
     border: 1px solid transparent;
     background: transparent;
     color: #334155;
-    font-size: 12px;
-    padding: 0 8px;
+    font-size: 13px;
+    padding: 0 10px;
 }
 
 .side-menu-link:hover,
@@ -1007,7 +1007,7 @@ body {
 
 .section-title {
     color: #111827;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .section-hint,

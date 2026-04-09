@@ -110,10 +110,35 @@ func GetSettings(c *gin.Context) {
 	backgroundImageURL, _ := config.GetAs[string](config.BackgroundImageURLKey, "")
 
 	web.RenderSettings(c, web.SettingsPageData{
-		Hosts:  hosts,
-		Config: cfg,
-		SiteTitle: siteTitle,
-		SiteLogoSVG: template.HTML(siteLogoSVG),
+		Hosts:              hosts,
+		Config:             cfg,
+		SiteTitle:          siteTitle,
+		SiteLogoSVG:        template.HTML(siteLogoSVG),
+		BackgroundImageURL: backgroundImageURL,
+	})
+}
+
+// GetAppearance renders appearance customization page.
+func GetAppearance(c *gin.Context) {
+	db := dbcore.GetDBInstance()
+
+	var hosts []models.Host
+	db.Find(&hosts)
+
+	cfg, _ := config.GetAll()
+	if cfg == nil {
+		cfg = map[string]any{}
+	}
+
+	siteTitle, _ := config.GetAs[string](config.SiteTitleKey, "IP Pool Monitor")
+	siteLogoSVG, _ := config.GetAs[string](config.SiteLogoSVGKey, "")
+	backgroundImageURL, _ := config.GetAs[string](config.BackgroundImageURLKey, "")
+
+	web.RenderAppearance(c, web.SettingsPageData{
+		Hosts:              hosts,
+		Config:             cfg,
+		SiteTitle:          siteTitle,
+		SiteLogoSVG:        template.HTML(siteLogoSVG),
 		BackgroundImageURL: backgroundImageURL,
 	})
 }
