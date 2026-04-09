@@ -84,8 +84,8 @@
     <div class="section-hint mb-16">添加主机时，若未填写“弃用连接命令”将自动使用此模板</div>
     <form id="template-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">默认弃用连接命令模板</label>
-        <textarea class="form-input" name="default_disconnect_command_template" rows="5" style="resize:vertical;white-space:pre-wrap;">{{index .Config "default_disconnect_command_template"}}</textarea>
+        <label class="form-label">默认弃用连接命令模板</label>
+        <textarea class="form-input textarea-wrap" name="default_disconnect_command_template" rows="5">{{index .Config "default_disconnect_command_template"}}</textarea>
       </div>
       <button class="btn btn-primary" type="button" onclick="saveConfig('template-form', ['default_disconnect_command_template'])">保存</button>
     </form>
@@ -114,7 +114,7 @@
     <div class="section-hint mb-16">状态变更和告警通知渠道</div>
     <form id="notify-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">Telegram Bot Token</label>
+        <label class="form-label">Telegram Bot Token</label>
         <input class="form-input" type="password" name="telegram_bot_token" placeholder="留空保持不变"
           value="{{index .Config "telegram_bot_token"}}">
       </div>
@@ -123,7 +123,7 @@
         <input class="form-input" type="text" name="telegram_chat_id" value="{{index .Config "telegram_chat_id"}}">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Webhook URL</label>
+        <label class="form-label">Webhook URL</label>
         <input class="form-input" type="text" name="webhook_url" value="{{index .Config "webhook_url"}}">
       </div>
       <div class="mb-16">
@@ -131,7 +131,7 @@
         <div class="label-hint">
           支持变量：<code>{event}</code> <code>{host}</code> <code>{ip}</code> <code>{state}</code> <code>{time}</code>
         </div>
-        <textarea class="form-input" name="notify_template" rows="6" style="resize:vertical;white-space:pre-wrap;">{{index .Config "notify_template"}}</textarea>
+        <textarea class="form-input textarea-wrap" name="notify_template" rows="6">{{index .Config "notify_template"}}</textarea>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-primary" type="button" onclick="saveConfig('notify-form', ['telegram_bot_token','telegram_chat_id','webhook_url','notify_template'])">保存</button>

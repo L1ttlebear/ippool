@@ -429,6 +429,11 @@ a:hover { color: #1d4ed8; }
     color: #334155;
 }
 
+.textarea-wrap {
+    resize: vertical;
+    white-space: pre-wrap;
+}
+
 .form-input {
     width: 100%;
     min-height: 30px;
