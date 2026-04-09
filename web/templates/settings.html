@@ -43,7 +43,7 @@
       <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
     </div>
     <div class="mb-16" style="max-width:240px;">
-      <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">Pool 列表（必选）</label>
+      <label class="form-label">Pool 列表（必选）</label>
       <select id="host-pool-filter" class="form-input" onchange="applyHostPoolFilter()"></select>
     </div>
     <table class="table">
@@ -119,7 +119,7 @@
           value="{{index .Config "telegram_bot_token"}}">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Chat ID</label>
+        <label class="form-label">Chat ID</label>
         <input class="form-input" type="text" name="telegram_chat_id" value="{{index .Config "telegram_chat_id"}}">
       </div>
       <div class="mb-16">
@@ -608,7 +608,7 @@ function renderDDNSRules() {
         <input class="form-input" type="text" data-k="record_name" data-i="${idx}" value="${escapeHtml(r.record_name || '')}" placeholder="例如 a.b.c">
       </div>
       <div class="flex justify-between items-center">
-        <label style="font-size:13px;color:rgba(255,255,255,0.75);">
+        <label class="checkbox-label">
           <input type="checkbox" data-k="enabled" data-i="${idx}" ${r.enabled === false ? '' : 'checked'} style="margin-right:8px;"> 启用该规则
         </label>
         <button class="btn btn-danger btn-sm" type="button" onclick="removeDDNSRuleRow(${idx})">删除规则</button>
