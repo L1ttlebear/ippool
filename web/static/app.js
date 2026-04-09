@@ -506,29 +506,52 @@ function prependEvent(data) {
     refreshRecentEventsLatest();
 }
 
-function applyTheme(theme) {
-    const isLight = theme === 'light';
+function resolveSystemTheme() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(mode) {
+    const effective = mode === 'system' ? resolveSystemTheme() : mode;
+    const isLight = effective === 'light';
     document.body.classList.toggle('theme-light', isLight);
+
     const toggle = document.getElementById('theme-toggle');
     if (toggle) {
-        toggle.textContent = isLight ? '☀️' : '🌙';
-        toggle.setAttribute('aria-label', isLight ? '切换到深色主题' : '切换到浅色主题');
-        toggle.title = isLight ? '浅色主题' : '深色主题';
+        const icon = mode === 'system' ? '🖥' : (isLight ? '☀️' : '🌙');
+        const label = mode === 'system' ? '跟随系统' : (isLight ? '浅色主题' : '深色主题');
+        toggle.innerHTML = `<span class="side-icon">${icon}</span><span>${label}</span>`;
+        toggle.setAttribute('aria-label', `当前${label}，点击切换`);
+        toggle.title = label;
     }
+}
+
+function nextThemeMode(current) {
+    if (current === 'light') return 'dark';
+    if (current === 'dark') return 'system';
+    return 'light';
 }
 
 function initThemeToggle() {
     const toggle = document.getElementById('theme-toggle');
     if (!toggle) return;
 
-    const saved = localStorage.getItem('ui-theme');
-    const preferred = saved || 'dark';
-    applyTheme(preferred);
+    let mode = localStorage.getItem('ui-theme-mode') || 'system';
+    if (!['light', 'dark', 'system'].includes(mode)) mode = 'system';
+    applyTheme(mode);
+
+    if (window.matchMedia) {
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        media.addEventListener?.('change', () => {
+            if ((localStorage.getItem('ui-theme-mode') || 'system') === 'system') {
+                applyTheme('system');
+            }
+        });
+    }
 
     toggle.addEventListener('click', () => {
-        const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
-        localStorage.setItem('ui-theme', next);
-        applyTheme(next);
+        mode = nextThemeMode(localStorage.getItem('ui-theme-mode') || 'system');
+        localStorage.setItem('ui-theme-mode', mode);
+        applyTheme(mode);
     });
 }
 
