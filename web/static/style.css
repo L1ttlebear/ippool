@@ -397,6 +397,38 @@ a:hover { color: #1d4ed8; }
     color: #64748b;
 }
 
+.w-240 { max-width: 240px; }
+.w-220 { max-width: 220px; }
+.w-320 { max-width: 320px; }
+.mt-6 { margin-top: 6px; }
+.mt-12 { margin-top: 12px; }
+.label-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+.label-hint code { color: #334155; }
+.empty-table-cell {
+    color: #94a3b8;
+    text-align: center;
+    padding: 24px;
+}
+.error-text {
+    color: #dc2626;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: none;
+}
+.passwd-msg {
+    margin-top: 12px;
+    font-size: 14px;
+}
+.btn-muted {
+    background: #f1f5f9;
+    color: #334155;
+}
+
 .form-input {
     width: 100%;
     min-height: 30px;

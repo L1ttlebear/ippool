@@ -42,7 +42,7 @@
       </div>
       <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
     </div>
-    <div class="mb-16" style="max-width:240px;">
+    <div class="mb-16 w-240">
       <label class="form-label">Pool 列表（必选）</label>
       <select id="host-pool-filter" class="form-input" onchange="applyHostPoolFilter()"></select>
     </div>
@@ -60,7 +60,7 @@
           <td><span class="badge badge-{{.State}}">{{.State}}</span></td>
           <td>
             <div id="ssh-status-{{.ID}}" class="ssh-status">未检测</div>
-            <div style="margin-top:6px;">
+            <div class="mt-6">
               <button class="btn btn-sm" id="ssh-btn-{{.ID}}" onclick="checkHostSSH({{.ID}}, '{{.Name}}')">立即检测</button>
             </div>
           </td>
@@ -72,7 +72,7 @@
           </td>
         </tr>
         {{else}}
-        <tr><td colspan="7" style="color:rgba(255,255,255,0.4);text-align:center;padding:24px;">暂无主机</td></tr>
+        <tr><td colspan="7" class="empty-table-cell">暂无主机</td></tr>
         {{end}}
       </tbody>
     </table>
@@ -128,8 +128,8 @@
       </div>
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">通知模板</label>
-        <div style="font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.4;">
-          支持变量：<code style="color:#334155;">{event}</code> <code style="color:rgba(255,255,255,0.8);">{host}</code> <code style="color:rgba(255,255,255,0.8);">{ip}</code> <code style="color:rgba(255,255,255,0.8);">{state}</code> <code style="color:rgba(255,255,255,0.8);">{time}</code>
+        <div class="label-hint">
+          支持变量：<code>{event}</code> <code>{host}</code> <code>{ip}</code> <code>{state}</code> <code>{time}</code>
         </div>
         <textarea class="form-input" name="notify_template" rows="6" style="resize:vertical;white-space:pre-wrap;">{{index .Config "notify_template"}}</textarea>
       </div>
@@ -152,8 +152,8 @@
       </div>
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">心跳超时阈值（秒）</label>
-        <input class="form-input" type="number" min="10" name="heartbeat_timeout_seconds"
-          value="{{index .Config "heartbeat_timeout_seconds"}}" style="max-width:220px;">
+        <input class="form-input w-220" type="number" min="10" name="heartbeat_timeout_seconds"
+          value="{{index .Config "heartbeat_timeout_seconds"}}">
       </div>
       <button class="btn btn-primary" type="button" onclick="saveConfig('heartbeat-form', ['agent_shared_token','heartbeat_timeout_seconds'])">保存</button>
     </form>
@@ -166,19 +166,19 @@
     <form id="passwd-form">
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">旧密码</label>
-        <input class="form-input" type="password" name="old_password" style="max-width:320px;">
+        <input class="form-input w-320" type="password" name="old_password">
       </div>
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">新密码</label>
-        <input class="form-input" type="password" name="new_password" style="max-width:320px;">
+        <input class="form-input w-320" type="password" name="new_password">
       </div>
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">确认新密码</label>
-        <input class="form-input" type="password" name="confirm_password" style="max-width:320px;">
+        <input class="form-input w-320" type="password" name="confirm_password">
       </div>
       <button class="btn btn-primary" type="button" onclick="changePassword()">保存</button>
     </form>
-    <div id="passwd-msg" style="margin-top:12px;font-size:14px;"></div>
+    <div id="passwd-msg" class="passwd-msg"></div>
   </div>
 
     </div>
@@ -243,7 +243,7 @@
         <div id="host-install-progress-bar" class="host-install-progress-bar"></div>
       </div>
     </div>
-    <div id="host-modal-error" style="color:#f87171;font-size:13px;margin-bottom:12px;display:none;"></div>
+    <div id="host-modal-error" class="error-text"></div>
     <div class="flex gap-8">
       <button id="host-save-btn" class="btn btn-primary" onclick="saveHost()">保存</button>
       <button id="host-install-now-btn" class="btn btn-primary" style="display:none;" onclick="installHostAgentNow()">安装 Agent</button>
