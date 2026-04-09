@@ -36,7 +36,7 @@ func (ai *AgentInstaller) Install(host models.Host, serverURL, token string, int
 
 	script := fmt.Sprintf(`set -e
 if ! command -v curl >/dev/null 2>&1; then
-  (pt install curl >/dev/null 2>&1 || true)
+  (apt install -y curl >/dev/null 2>&1 || true)
   if ! command -v curl >/dev/null 2>&1; then
     if command -v apt-get >/dev/null 2>&1; then
       DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null 2>&1 || true
