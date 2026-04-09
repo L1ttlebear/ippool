@@ -511,7 +511,32 @@ function togglePoolCarrierPanel() {
     btn.textContent = collapsed ? '展开更多' : '收起';
 }
 
+function initMobileSidebar() {
+    const menuToggle = document.querySelector('.mobile-menu-toggle');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (!menuToggle || !backdrop) return;
+
+    const close = () => {
+        document.body.classList.remove('sidebar-open');
+        backdrop.classList.remove('active');
+    };
+
+    menuToggle.addEventListener('click', () => {
+        const open = document.body.classList.toggle('sidebar-open');
+        backdrop.classList.toggle('active', open);
+    });
+
+    backdrop.addEventListener('click', close);
+
+    document.querySelectorAll('.side-menu-link').forEach((el) => {
+        el.addEventListener('click', () => {
+            if (window.innerWidth <= 980) close();
+        });
+    });
+}
+
 initThemeToggle();
+initMobileSidebar();
 enhanceEventList();
 
 // Only connect on pages that have the event list or host grid (i.e., index page)
