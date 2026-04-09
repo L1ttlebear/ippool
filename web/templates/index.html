@@ -33,6 +33,25 @@
 
     <div class="settings-main">
 
+  <div class="stats-grid mb-24">
+    <div class="glass-card stat-card">
+      <div class="stat-label">主机总数</div>
+      <div class="stat-value">{{len .Hosts}}</div>
+    </div>
+    <div class="glass-card stat-card">
+      <div class="stat-label">可用主机</div>
+      <div class="stat-value">{{len .ActiveHosts}}</div>
+    </div>
+    <div class="glass-card stat-card">
+      <div class="stat-label">已用尽主机</div>
+      <div class="stat-value">{{len .ExhaustedHosts}}</div>
+    </div>
+    <div class="glass-card stat-card">
+      <div class="stat-label">当前 Leader</div>
+      <div class="stat-value stat-text">{{if .Leader}}{{.Leader.Name}}{{else}}暂无{{end}}</div>
+    </div>
+  </div>
+
   <div class="monitor-layout mb-24">
     <div class="monitor-main">
 
@@ -95,16 +114,16 @@
         <div class="flex justify-between items-center mb-16">
           <div>
             <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">{{.IP}}</div>
           </div>
           <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
         </div>
         <div style="margin-bottom:12px;">
-          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">默认网卡流量</div>
           <div class="progress-bar">
             <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
           </div>
-          <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
+          <div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.45;"
                data-traffic-threshold="{{.TrafficThreshold}}"
                {{with (index $.TrafficMap .ID)}}
                data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
@@ -128,7 +147,7 @@
             <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
+        <div style="font-size:11px;color:#94a3b8;">Priority: {{.Priority}}</div>
       </div>
           {{else}}
           <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无在线可用主机</div>
