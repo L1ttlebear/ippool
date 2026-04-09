@@ -20,6 +20,14 @@ body {
     font-size: 13px;
 }
 
+body.has-custom-bg {
+    background-color: #f3f5fa;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
 body.theme-light {
     --bg-gradient: linear-gradient(180deg, #f5f7fb, #f3f6fb);
     --text-color: #0f172a;
