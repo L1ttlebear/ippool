@@ -3,8 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{block "title" .}}IP Pool Monitor{{end}}</title>
+    <title>{{if .SiteTitle}}{{.SiteTitle}}{{else}}{{block "title" .}}IP Pool Monitor{{end}}{{end}}</title>
     <link rel="stylesheet" href="/static/style.css">
+    {{if .BackgroundImageURL}}
+    <style>
+      body {
+        background-image: linear-gradient(rgba(255,255,255,0.86), rgba(255,255,255,0.86)), url('{{.BackgroundImageURL}}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+    </style>
+    {{end}}
 </head>
 <body>
 {{block "content" .}}{{end}}

@@ -3,7 +3,10 @@
 <!-- 导航栏 -->
 <nav class="navbar">
   <div class="nav-left">
-    <span class="brand"><a href="/" class="brand-link">IP Pool Monitor</a></span>
+    <span class="brand"><a href="/" class="brand-link">
+      {{if .SiteLogoSVG}}<span class="brand-logo">{{.SiteLogoSVG}}</span>{{end}}
+      <span>{{if .SiteTitle}}{{.SiteTitle}}{{else}}IP Pool Monitor{{end}}</span>
+    </a></span>
   </div>
 </nav>
 
@@ -15,6 +18,7 @@
         <div class="side-menu-title">概览</div>
         <a class="nav-link side-menu-link" href="/"><span class="side-icon">⌂</span><span>监控</span></a>
         <a class="nav-link side-menu-link active" href="/settings"><span class="side-icon">⚙</span><span>设置</span></a>
+        <a class="nav-link side-menu-link" href="#appearance-config"><span class="side-icon">◫</span><span>外观</span></a>
         <div class="side-menu-title">系统</div>
         <button id="theme-toggle" class="theme-toggle side-menu-btn" type="button" aria-label="切换主题"><span class="side-icon">◐</span><span>主题</span></button>
         <a class="nav-link nav-link-muted side-menu-link" href="/logout"><span class="side-icon">⇥</span><span>退出登录</span></a>
@@ -26,6 +30,27 @@
     </aside>
 
     <div class="settings-main">
+
+  <!-- 外观配置 -->
+  <div class="glass-card mb-24" id="appearance-config">
+    <div class="section-title mb-16">外观配置</div>
+    <div class="section-hint mb-16">可修改网页标题、导航 SVG 与全站背景图（仅支持远程图片链接）</div>
+    <form id="appearance-form">
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">网页标题</label>
+        <input class="form-input" type="text" name="site_title" value="{{.SiteTitle}}" maxlength="80" placeholder="例如：IPP 控制台">
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">网页 SVG（可选）</label>
+        <textarea class="form-input" name="site_logo_svg" rows="4" style="resize:vertical;white-space:pre-wrap;" placeholder="粘贴 <svg>...</svg>">{{.SiteLogoSVG}}</textarea>
+      </div>
+      <div class="mb-16">
+        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">背景图片链接（仅 http/https 远程链接）</label>
+        <input class="form-input" type="text" name="background_image_url" value="{{.BackgroundImageURL}}" placeholder="https://example.com/bg.jpg">
+      </div>
+      <button class="btn btn-primary" type="button" onclick="saveAppearanceConfig()">保存并应用</button>
+    </form>
+  </div>
 
   <!-- 主机管理 -->
   <div class="glass-card mb-24">
@@ -685,6 +710,28 @@ async function saveDDNSRules() {
   if (resp.ok) {
     alert('保存成功');
     await initDDNSRules();
+  } else {
+    alert('保存失败: ' + (data.error || ''));
+  }
+}
+
+async function saveAppearanceConfig() {
+  const form = document.getElementById('appearance-form');
+  const body = {
+    site_title: (form.querySelector('[name="site_title"]').value || '').trim(),
+    site_logo_svg: (form.querySelector('[name="site_logo_svg"]').value || '').trim(),
+    background_image_url: (form.querySelector('[name="background_image_url"]').value || '').trim(),
+  };
+
+  const resp = await fetch('/api/config', {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('外观配置已保存，页面将刷新应用');
+    location.reload();
   } else {
     alert('保存失败: ' + (data.error || ''));
   }

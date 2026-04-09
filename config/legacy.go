@@ -26,6 +26,9 @@ type AppConfig struct {
 	HeartbeatTimeoutSeconds int `json:"heartbeat_timeout_seconds" default:"90"`
 	DefaultDisconnectCommandTemplate string `json:"default_disconnect_command_template" default:"curl -L https://gh-proxy.com/https://github.com/Sagit-chu/flvx/releases/download/2.2.0-beta9/install.sh -o ./install.sh && chmod +x ./install.sh && PROXY_ENABLED=true PROXY_URL=https://gh-proxy.com VERSION=2.2.0-beta9 ./install.sh -a 43.255.159.185:6365 -s 94afbeb3ddc14a2e442338b3fe159db9"`
 	DDNSPoolRules []DdnsPoolRule `json:"ddns_pool_rules" default:"[]"`
+	SiteTitle string `json:"site_title" default:"IP Pool Monitor"`
+	SiteLogoSVG string `json:"site_logo_svg" default:""`
+	BackgroundImageURL string `json:"background_image_url" default:""`
 }
 
 const (
@@ -44,4 +47,7 @@ const (
 	HeartbeatTimeoutSecondsKey = "heartbeat_timeout_seconds"
 	DefaultDisconnectCommandTemplateKey = "default_disconnect_command_template"
 	DDNSPoolRulesKey = "ddns_pool_rules"
+	SiteTitleKey = "site_title"
+	SiteLogoSVGKey = "site_logo_svg"
+	BackgroundImageURLKey = "background_image_url"
 )

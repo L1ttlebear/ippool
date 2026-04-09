@@ -1,6 +1,7 @@
 package api
 
 import (
+	"html/template"
 	"sort"
 	"time"
 
@@ -26,6 +27,9 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 
 		leaderID, _ := config.GetAs[uint](config.CurrentLeaderIDKey, uint(0))
 		domain, _ := config.GetAs[string](config.CFRecordNameKey, "")
+		siteTitle, _ := config.GetAs[string](config.SiteTitleKey, "IP Pool Monitor")
+		siteLogoSVG, _ := config.GetAs[string](config.SiteLogoSVGKey, "")
+		backgroundImageURL, _ := config.GetAs[string](config.BackgroundImageURLKey, "")
 
 		var leader *models.Host
 		for i := range hosts {
@@ -81,6 +85,9 @@ func GetIndex(cb *engine.CircuitBreaker) gin.HandlerFunc {
 			CurrentLeaderID: leaderID,
 			TrafficMap:      trafficMap,
 			PoolCarriers:    poolCards,
+			SiteTitle:       siteTitle,
+			SiteLogoSVG:     template.HTML(siteLogoSVG),
+			BackgroundImageURL: backgroundImageURL,
 		}
 		web.RenderIndex(c, data)
 	}
@@ -98,9 +105,16 @@ func GetSettings(c *gin.Context) {
 		cfg = map[string]any{}
 	}
 
+	siteTitle, _ := config.GetAs[string](config.SiteTitleKey, "IP Pool Monitor")
+	siteLogoSVG, _ := config.GetAs[string](config.SiteLogoSVGKey, "")
+	backgroundImageURL, _ := config.GetAs[string](config.BackgroundImageURLKey, "")
+
 	web.RenderSettings(c, web.SettingsPageData{
 		Hosts:  hosts,
 		Config: cfg,
+		SiteTitle: siteTitle,
+		SiteLogoSVG: template.HTML(siteLogoSVG),
+		BackgroundImageURL: backgroundImageURL,
 	})
 }
 

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -77,6 +78,36 @@ func UpdateConfig(c *gin.Context) {
 			return
 		}
 		updates[config.DDNSPoolRulesKey] = rules
+	}
+
+	if v, ok := updates[config.SiteTitleKey]; ok {
+		title := strings.TrimSpace(anyToString(v))
+		if len(title) > 80 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "site_title too long (max 80)"})
+			return
+		}
+		updates[config.SiteTitleKey] = title
+	}
+
+	if v, ok := updates[config.SiteLogoSVGKey]; ok {
+		svg := strings.TrimSpace(anyToString(v))
+		if len(svg) > 20000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "site_logo_svg too long (max 20000 chars)"})
+			return
+		}
+		updates[config.SiteLogoSVGKey] = svg
+	}
+
+	if v, ok := updates[config.BackgroundImageURLKey]; ok {
+		raw := strings.TrimSpace(anyToString(v))
+		if raw != "" {
+			u, err := url.Parse(raw)
+			if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "background_image_url must be a valid remote http/https URL"})
+				return
+			}
+		}
+		updates[config.BackgroundImageURLKey] = raw
 	}
 
 	if err := config.SetMany(updates); err != nil {

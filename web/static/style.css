@@ -97,6 +97,23 @@ body.theme-light {
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+}
+
+.brand-logo svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .brand-link {

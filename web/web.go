@@ -45,12 +45,18 @@ type IndexPageData struct {
 	// TrafficMap maps host ID -> latest traffic check result
 	TrafficMap map[uint]HostTrafficInfo
 	PoolCarriers []PoolCarrierCard
+	SiteTitle string
+	SiteLogoSVG template.HTML
+	BackgroundImageURL string
 }
 
 // SettingsPageData is the data passed to the settings template.
 type SettingsPageData struct {
 	Hosts  []models.Host
 	Config map[string]any
+	SiteTitle string
+	SiteLogoSVG template.HTML
+	BackgroundImageURL string
 }
 
 // LoginPageData is the data passed to the login template.
