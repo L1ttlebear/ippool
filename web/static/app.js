@@ -23,25 +23,35 @@ function stateZh(s) {
     return m[s] || s || '-';
 }
 
-function applyBrandConfig() {
+function applyBrandConfig(override = null) {
     const body = document.body;
     if (!body) return;
 
-    const siteTitle = (body.getAttribute('data-site-title') || '').trim();
-    const bgUrl = (body.getAttribute('data-background-image-url') || '').trim();
+    const siteTitle = String(override?.site_title ?? body.getAttribute('data-site-title') ?? '').trim();
+    const bgUrl = String(override?.background_image_url ?? body.getAttribute('data-background-image-url') ?? '').trim();
 
     if (siteTitle) {
         document.title = siteTitle;
+        body.setAttribute('data-site-title', siteTitle);
     }
 
     if (bgUrl) {
         body.classList.add('has-custom-bg');
+        body.setAttribute('data-background-image-url', bgUrl);
         body.style.backgroundImage = `linear-gradient(rgba(255,255,255,0.86), rgba(255,255,255,0.86)), url('${bgUrl.replace(/'/g, "\\'")}')`;
     } else {
         body.classList.remove('has-custom-bg');
+        body.setAttribute('data-background-image-url', '');
         body.style.removeProperty('background-image');
     }
+
+    const brandTextNodes = document.querySelectorAll('#brand-display span:last-child, .side-brand, .brand-link span:last-child');
+    brandTextNodes.forEach((el) => {
+        if (siteTitle) el.textContent = siteTitle;
+    });
 }
+
+window.applyBrandConfig = applyBrandConfig;
 
 function connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';

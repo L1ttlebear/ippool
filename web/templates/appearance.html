@@ -72,8 +72,10 @@ async function saveAppearanceConfig() {
   });
   const data = await resp.json();
   if (resp.ok) {
-    alert('外观配置已保存，页面将刷新应用');
-    location.reload();
+    alert('外观配置已保存，已即时应用');
+    if (typeof window.applyBrandConfig === 'function') {
+      window.applyBrandConfig(body);
+    }
   } else {
     alert('保存失败: ' + (data.error || ''));
   }
