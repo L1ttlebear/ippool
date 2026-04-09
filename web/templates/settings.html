@@ -80,7 +80,7 @@
 
   <!-- 默认模板 -->
   <div class="glass-card mb-24">
-    <div class="section-title mb-16">默认命令模板</div>
+    <div class="section-title mb-16">连接命令模板</div>
     <div class="section-hint mb-16">添加主机时，若未填写“弃用连接命令”将自动使用此模板</div>
     <form id="template-form">
       <div class="mb-16">
@@ -114,7 +114,7 @@
     <div class="section-hint mb-16">状态变更和告警通知渠道</div>
     <form id="notify-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Telegram Bot Token</label>
+        <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">Telegram Bot Token</label>
         <input class="form-input" type="password" name="telegram_bot_token" placeholder="留空保持不变"
           value="{{index .Config "telegram_bot_token"}}">
       </div>
@@ -128,8 +128,8 @@
       </div>
       <div class="mb-16">
         <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">通知模板</label>
-        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px;line-height:1.4;">
-          支持变量：<code style="color:rgba(255,255,255,0.8);">{event}</code> <code style="color:rgba(255,255,255,0.8);">{host}</code> <code style="color:rgba(255,255,255,0.8);">{ip}</code> <code style="color:rgba(255,255,255,0.8);">{state}</code> <code style="color:rgba(255,255,255,0.8);">{time}</code>
+        <div style="font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.4;">
+          支持变量：<code style="color:#334155;">{event}</code> <code style="color:rgba(255,255,255,0.8);">{host}</code> <code style="color:rgba(255,255,255,0.8);">{ip}</code> <code style="color:rgba(255,255,255,0.8);">{state}</code> <code style="color:rgba(255,255,255,0.8);">{time}</code>
         </div>
         <textarea class="form-input" name="notify_template" rows="6" style="resize:vertical;white-space:pre-wrap;">{{index .Config "notify_template"}}</textarea>
       </div>
@@ -137,18 +137,6 @@
         <button class="btn btn-primary" type="button" onclick="saveConfig('notify-form', ['telegram_bot_token','telegram_chat_id','webhook_url','notify_template'])">保存</button>
         <button class="btn btn-primary" type="button" onclick="testNotify()">测试通知</button>
       </div>
-    </form>
-  </div>
-
-  <!-- 命令模板 -->
-  <div class="glass-card mb-24">
-    <div class="section-title mb-16">命令模板</div>
-    <div class="section-hint mb-16">新建主机时默认填充的弃用连接命令</div>
-    <form id="command-template-form">
-      <div class="mb-16">
-        <textarea class="form-input" name="default_disconnect_command_template" rows="4" style="resize:vertical;white-space:pre-wrap;">{{index .Config "default_disconnect_command_template"}}</textarea>
-      </div>
-      <button class="btn btn-primary" type="button" onclick="saveConfig('command-template-form', ['default_disconnect_command_template'])">保存</button>
     </form>
   </div>
 
