@@ -429,6 +429,15 @@ a:hover { color: #1d4ed8; }
     color: #334155;
 }
 
+.hidden { display: none !important; }
+.mr-8 { margin-right: 8px; }
+
+.modal-title {
+    margin: 0 0 24px;
+    font-size: 16px;
+    color: #111827;
+}
+
 .textarea-wrap {
     resize: vertical;
     white-space: pre-wrap;

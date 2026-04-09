@@ -127,7 +127,7 @@
         <input class="form-input" type="text" name="webhook_url" value="{{index .Config "webhook_url"}}">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">通知模板</label>
+        <label class="form-label">通知模板</label>
         <div class="label-hint">
           支持变量：<code>{event}</code> <code>{host}</code> <code>{ip}</code> <code>{state}</code> <code>{time}</code>
         </div>
@@ -188,10 +188,10 @@
 <!-- 添加/编辑主机模态框 -->
 <div class="modal-overlay" id="host-modal">
   <div class="modal">
-    <h3 style="margin:0 0 24px;" id="modal-title">添加主机</h3>
+    <h3 class="modal-title" id="modal-title">添加主机</h3>
     <input type="hidden" id="host-id">
     <div class="mb-16">
-      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">名称</label>
+      <label class="form-label">名称</label>
       <input class="form-input" type="text" id="host-name">
     </div>
     <div class="mb-16">
@@ -232,12 +232,12 @@
     </div>
     <div class="mb-16">
       <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">
-        <input type="checkbox" id="host-install-agent" style="margin-right:8px;"> 添加主机后立即安装 Agent
+        <input type="checkbox" id="host-install-agent" class="mr-8"> 添加主机后立即安装 Agent
       </label>
       <input class="form-input" type="text" id="host-agent-server-url" placeholder="Agent 回传地址，留空自动使用当前面板地址">
-      <div class="section-hint" style="margin-top:6px;">示例：https://panel.example.com</div>
+      <div class="section-hint mt-6">示例：https://panel.example.com</div>
     </div>
-    <div id="host-install-progress" class="host-install-progress" style="display:none;">
+    <div id="host-install-progress" class="host-install-progress hidden">
       <div id="host-install-progress-text" class="host-install-progress-text"></div>
       <div class="host-install-progress-track">
         <div id="host-install-progress-bar" class="host-install-progress-bar"></div>
@@ -246,8 +246,8 @@
     <div id="host-modal-error" class="error-text"></div>
     <div class="flex gap-8">
       <button id="host-save-btn" class="btn btn-primary" onclick="saveHost()">保存</button>
-      <button id="host-install-now-btn" class="btn btn-primary" style="display:none;" onclick="installHostAgentNow()">安装 Agent</button>
-      <button id="host-cancel-btn" class="btn" style="background:rgba(255,255,255,0.1);color:#e0e0e0;" onclick="closeHostModal()">取消</button>
+      <button id="host-install-now-btn" class="btn btn-primary hidden" onclick="installHostAgentNow()">安装 Agent</button>
+      <button id="host-cancel-btn" class="btn btn-muted" onclick="closeHostModal()">取消</button>
     </div>
   </div>
 </div>
