@@ -76,9 +76,9 @@
           <div class="pool-inner-list">
             {{range .Hosts}}
             <div class="pool-inner-host">
-              <div style="font-weight:600;font-size:14px;">{{.Name}}</div>
-              <div style="font-size:12px;color:var(--muted-text);">{{.IP}}</div>
-              <div style="font-size:11px;color:var(--muted-text);margin-top:4px;">切换时间：{{.LastStateChange.Format "2006-01-02 15:04:05"}}</div>
+              <div class="host-name-sm">{{.Name}}</div>
+              <div class="host-ip-sm">{{.IP}}</div>
+              <div class="host-time-sm">切换时间：{{.LastStateChange.Format "2006-01-02 15:04:05"}}</div>
             </div>
             {{end}}
           </div>
@@ -86,23 +86,23 @@
         {{end}}
       </div>
       {{else}}
-      <div style="font-size:14px;color:rgba(255,255,255,0.55);">暂无正在承载的 Pool 主机</div>
+      <div class="empty-hint">暂无正在承载的 Pool 主机</div>
       {{end}}
     </div>
   </div>
 
   <!-- 状态告警横幅 -->
   <div class="circuit-banner mb-24{{if .CircuitOpen}} active{{end}}{{if .NoHosts}} active warning{{end}}" id="circuit-banner" data-no-hosts="{{if .NoHosts}}true{{else}}false{{end}}">
-    <span style="font-size:20px;" id="circuit-banner-icon">{{if .NoHosts}}⚠️{{else}}⚠{{end}}</span>
+    <span class="circuit-icon" id="circuit-banner-icon">{{if .NoHosts}}⚠️{{else}}⚠{{end}}</span>
     <div>
-      <div style="font-weight:600;" id="circuit-banner-title">{{if .NoHosts}}请添加主机{{else}}熔断器已触发{{end}}</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.7);" id="circuit-banner-desc">{{if .NoHosts}}主机池为空，请前往设置页添加主机{{else}}所有主机均不可用，请立即介入{{end}}</div>
+      <div class="circuit-title" id="circuit-banner-title">{{if .NoHosts}}请添加主机{{else}}熔断器已触发{{end}}</div>
+      <div class="circuit-desc" id="circuit-banner-desc">{{if .NoHosts}}主机池为空，请前往设置页添加主机{{else}}所有主机均不可用，请立即介入{{end}}</div>
     </div>
   </div>
 
       <!-- 在线主机 -->
       <div class="mb-24">
-        <div style="margin-bottom:8px;" class="flex justify-between items-center">
+        <div class="mb-8 flex justify-between items-center">
           <div>
             <div class="section-title">主机列表</div>
             <div class="section-hint">在线且可用（ready）的主机</div>
@@ -113,17 +113,17 @@
           <div class="glass-card" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
         <div class="flex justify-between items-center mb-16">
           <div>
-            <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px;">{{.IP}}</div>
+            <div class="host-name">{{.Name}}</div>
+            <div class="host-ip">{{.IP}}</div>
           </div>
           <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
         </div>
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">默认网卡流量</div>
+        <div class="traffic-block">
+          <div class="traffic-label">默认网卡流量</div>
           <div class="progress-bar">
             <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
           </div>
-          <div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.45;"
+          <div class="traffic-meta"
                data-traffic-threshold="{{.TrafficThreshold}}"
                {{with (index $.TrafficMap .ID)}}
                data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
@@ -147,10 +147,10 @@
             <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
           </div>
         </div>
-        <div style="font-size:11px;color:#94a3b8;">Priority: {{.Priority}}</div>
+        <div class="priority-text">Priority: {{.Priority}}</div>
       </div>
           {{else}}
-          <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无在线可用主机</div>
+          <div class="empty-hint">暂无在线可用主机</div>
           {{end}}
         </div>
       </div>
@@ -185,7 +185,7 @@
             <div class="event-message">{{eventMessageZh .MsgType .Message}}</div>
           </div>
           {{else}}
-          <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无事件记录</div>
+          <div class="empty-hint">暂无事件记录</div>
           {{end}}
         </div>
       </details>
@@ -205,17 +205,17 @@
           <div class="glass-card exhausted-host-item" id="host-card-{{.ID}}" data-host-name="{{.Name}}" data-host-ip="{{.IP}}">
             <div class="flex justify-between items-center mb-16">
               <div>
-                <div style="font-weight:600;font-size:15px;">{{.Name}}</div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:2px;">{{.IP}}</div>
+                <div class="host-name">{{.Name}}</div>
+                <div class="host-ip">{{.IP}}</div>
               </div>
               <span class="badge badge-{{.State}}" id="badge-{{.ID}}">{{.State}}</span>
             </div>
-            <div style="margin-bottom:12px;">
-              <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;">默认网卡流量</div>
+            <div class="traffic-block">
+              <div class="traffic-label">默认网卡流量</div>
               <div class="progress-bar">
                 <div class="progress-fill {{.State}}" style="width:0%;" id="progress-{{.ID}}"></div>
               </div>
-              <div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.45;"
+              <div class="traffic-meta"
                    data-traffic-threshold="{{.TrafficThreshold}}"
                    {{with (index $.TrafficMap .ID)}}
                    data-reachable="{{if .Reachable}}true{{else}}false{{end}}"
@@ -239,10 +239,10 @@
                 <div>使用：<span id="traffic-used-{{.ID}}">-</span>{{if gt .TrafficThreshold 0}} / <span id="traffic-threshold-{{.ID}}">-</span>{{else}} / 未设置阈值{{end}}</div>
               </div>
             </div>
-            <div style="font-size:12px;color:rgba(255,255,255,0.4);">Priority: {{.Priority}}</div>
+            <div class="priority-text">Priority: {{.Priority}}</div>
           </div>
           {{else}}
-          <div style="color:rgba(255,255,255,0.4);font-size:14px;">暂无已用尽主机</div>
+          <div class="empty-hint">暂无已用尽主机</div>
           {{end}}
         </div>
       </div>
