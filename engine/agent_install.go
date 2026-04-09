@@ -35,6 +35,21 @@ func (ai *AgentInstaller) Install(host models.Host, serverURL, token string, int
 	defer client.Close()
 
 	script := fmt.Sprintf(`set -e
+if ! command -v curl >/dev/null 2>&1; then
+  (pt install curl >/dev/null 2>&1 || true)
+  if ! command -v curl >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null 2>&1 || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y curl >/dev/null 2>&1 || true
+    elif command -v yum >/dev/null 2>&1; then
+      yum install -y curl >/dev/null 2>&1 || true
+    elif command -v dnf >/dev/null 2>&1; then
+      dnf install -y curl >/dev/null 2>&1 || true
+    elif command -v apk >/dev/null 2>&1; then
+      apk add --no-cache curl >/dev/null 2>&1 || true
+    fi
+  fi
+fi
 mkdir -p /opt/ippool-agent
 cat >/opt/ippool-agent/agent.sh <<'EOF'
 #!/usr/bin/env sh
