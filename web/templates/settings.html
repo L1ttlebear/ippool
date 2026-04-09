@@ -14,7 +14,7 @@
   <div class="settings-layout">
     <aside class="glass-card side-menu side-menu-modern">
       <div class="side-menu-main">
-        <div class="side-brand">IP Pool Monitor</div>
+        <div class="side-brand">{{if .SiteTitle}}{{.SiteTitle}}{{else}}IP Pool Monitor{{end}}</div>
         <div class="side-menu-title">概览</div>
         <a class="nav-link side-menu-link" href="/"><span class="side-icon">⌂</span><span>监控</span></a>
         <a class="nav-link side-menu-link active" href="/settings"><span class="side-icon">⚙</span><span>设置</span></a>
@@ -41,7 +41,7 @@
       <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
     </div>
     <div class="mb-16" style="max-width:240px;">
-      <label style="display:block;margin-bottom:6px;font-size:13px;color:rgba(255,255,255,0.75);">Pool 列表（必选）</label>
+      <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">Pool 列表（必选）</label>
       <select id="host-pool-filter" class="form-input" onchange="applyHostPoolFilter()"></select>
     </div>
     <table class="table">
@@ -82,7 +82,7 @@
     <div class="section-hint mb-16">添加主机时，若未填写“弃用连接命令”将自动使用此模板</div>
     <form id="template-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">默认弃用连接命令模板</label>
+        <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">默认弃用连接命令模板</label>
         <textarea class="form-input" name="default_disconnect_command_template" rows="5" style="resize:vertical;white-space:pre-wrap;">{{index .Config "default_disconnect_command_template"}}</textarea>
       </div>
       <button class="btn btn-primary" type="button" onclick="saveConfig('template-form', ['default_disconnect_command_template'])">保存</button>

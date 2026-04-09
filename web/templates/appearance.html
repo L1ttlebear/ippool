@@ -2,7 +2,10 @@
 {{define "content"}}
 <nav class="navbar">
   <div class="nav-left">
-    <span class="brand"><a href="/" class="brand-link">{{if .SiteTitle}}{{.SiteTitle}}{{else}}IP Pool Monitor{{end}}</a></span>
+    <span class="brand"><a href="/" class="brand-link">
+      {{if .SiteLogoSVG}}<span class="brand-logo">{{.SiteLogoSVG}}</span>{{end}}
+      <span>{{if .SiteTitle}}{{.SiteTitle}}{{else}}IP Pool Monitor{{end}}</span>
+    </a></span>
   </div>
 </nav>
 
@@ -31,7 +34,7 @@
         <div class="section-hint mb-16">修改网页标题、导航 SVG 与全站背景图（仅支持远程 http/https 图片链接）</div>
         <form id="appearance-form">
           <div class="mb-16">
-            <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">网页标题</label>
+            <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">网页标题</label>
             <input class="form-input" type="text" name="site_title" value="{{index .Config "site_title"}}" maxlength="80" placeholder="例如：IPP 控制台">
           </div>
           <div class="mb-16">
