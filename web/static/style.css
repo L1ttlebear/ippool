@@ -18,6 +18,14 @@ body {
     background: #f3f5fa;
     color: #0f172a;
     font-size: 13px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+body.has-custom-bg {
+    background-color: #f3f5fa;
 }
 
 body.has-custom-bg {
