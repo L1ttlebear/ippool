@@ -129,11 +129,19 @@ a:hover { color: var(--link-hover); }
     padding: 8px 10px 14px;
 }
 
+.flvx-container {
+    min-height: calc(100vh - 42px);
+}
+
 .settings-layout {
     display: grid;
     grid-template-columns: 108px minmax(0, 1fr);
     gap: 8px;
     align-items: start;
+}
+
+.flvx-layout {
+    height: calc(100vh - 58px);
 }
 
 .side-menu {
@@ -148,6 +156,11 @@ a:hover { color: var(--link-hover); }
     border-radius: 8px;
     background: var(--glass-bg);
     border: 1px solid var(--border-soft);
+}
+
+.flvx-sidebar {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 }
 
 .side-menu-main { display: flex; flex-direction: column; gap: 6px; }
