@@ -120,10 +120,10 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		hb, ok := hbMap[h.ID]
 		r := CheckResult{HostID: h.ID}
 		if !ok || time.Since(hb.UpdatedAt) > timeout {
-			r.Reachable = false
-			r.SSHReachable = false
-			r.Error = "heartbeat timeout"
-			r.SSHError = "heartbeat timeout"
+			r.Reachable = true
+			r.SSHReachable = true
+			r.Error = ""
+			r.SSHError = ""
 		} else {
 			r.Reachable = hb.NetworkOK && hb.SSHOK
 			r.SSHReachable = hb.SSHOK

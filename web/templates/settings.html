@@ -572,7 +572,7 @@ async function saveHost() {
     closeHostModal(true);
     location.reload();
   } catch (e) {
-    errEl.textContent = '请求失败，请检查网络或服务状态';
+    errEl.textContent = (e && e.message) ? e.message : '请求失败，请检查网络或服务状态';
     errEl.style.display = 'block';
   } finally {
     hostSaveInProgress = false;
@@ -626,7 +626,7 @@ async function installHostAgentNow() {
     await pollHostInstallTask(taskId, false);
   } catch (e) {
     setHostInstallProgress(true, 'Agent 安装失败，请稍后重试', 100);
-    errEl.textContent = '请求失败，请检查网络或服务状态';
+    errEl.textContent = (e && e.message) ? e.message : '请求失败，请检查网络或服务状态';
     errEl.style.display = 'block';
   } finally {
     hostSaveInProgress = false;
