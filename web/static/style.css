@@ -217,17 +217,20 @@ a:hover { color: var(--link-hover); }
 .page-header {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
+    padding: 2px 2px 0;
 }
 
 .page-title {
-    font-size: 16px;
+    font-size: 17px;
+    line-height: 1.2;
     font-weight: 700;
     color: var(--title-color);
 }
 
 .page-subtitle {
     font-size: 12px;
+    line-height: 1.45;
     color: var(--muted-text);
 }
 
@@ -286,19 +289,20 @@ a:hover { color: var(--link-hover); }
 .stat-card {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
+    min-height: 86px;
 }
 
 .stat-label {
     font-size: 10px;
-    color: #94a3b8;
+    color: var(--muted-text);
 }
 
 .stat-value {
-    font-size: 22px;
-    line-height: 1.15;
+    font-size: 24px;
+    line-height: 1.1;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--title-color);
 }
 
 .stat-value.stat-text {
