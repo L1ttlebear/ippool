@@ -156,12 +156,12 @@
     <div class="section-hint mb-16">仅使用 Agent 心跳判定主机在线状态（不再主动 SSH 探测）</div>
     <form id="heartbeat-form">
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Agent 共享 Token</label>
+        <label class="form-label">Agent 共享 Token</label>
         <input class="form-input" type="password" name="agent_shared_token" placeholder="Agent 请求头 X-Agent-Token"
           value="{{index .Config "agent_shared_token"}}">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">心跳超时阈值（秒）</label>
+        <label class="form-label">心跳超时阈值（秒）</label>
         <input class="form-input w-220" type="number" min="10" name="heartbeat_timeout_seconds"
           value="{{index .Config "heartbeat_timeout_seconds"}}">
       </div>
