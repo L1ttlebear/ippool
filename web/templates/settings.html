@@ -700,19 +700,19 @@ function renderDDNSRules() {
     row.className = 'ddns-rule-row mb-16';
     row.innerHTML = `
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">主机池名（Pool）</label>
+        <label class="form-label">主机池名（Pool）</label>
         <input class="form-input" type="text" data-k="pool" data-i="${idx}" value="${escapeHtml(r.pool || '')}" placeholder="例如 default / hk / us">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">CF API Token</label>
+        <label class="form-label">CF API Token</label>
         <input class="form-input" type="password" data-k="cf_api_token" data-i="${idx}" value="${escapeHtml(r.cf_api_token || '')}" placeholder="留空表示此规则无效">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Zone ID</label>
+        <label class="form-label">Zone ID</label>
         <input class="form-input" type="text" data-k="cf_zone_id" data-i="${idx}" value="${escapeHtml(r.cf_zone_id || '')}">
       </div>
       <div class="mb-16">
-        <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Record Name（域名）</label>
+        <label class="form-label">Record Name（域名）</label>
         <input class="form-input" type="text" data-k="record_name" data-i="${idx}" value="${escapeHtml(r.record_name || '')}" placeholder="例如 a.b.c">
       </div>
       <div class="flex justify-between items-center">

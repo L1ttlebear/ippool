@@ -252,6 +252,8 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		var resolvedIPs []string
 		ddnsEnabled := false
 		ddnsDomain := ""
+		ddnsRemoteSynced := false
+		ddnsRemoteError := ""
 
 		rules, _ := config.GetAs[[]config.DdnsPoolRule](config.DDNSPoolRulesKey, []config.DdnsPoolRule{})
 		for _, rule := range rules {
@@ -275,6 +277,13 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 				continue
 			}
 
+			if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfToken, cfZone, cfRecord); err != nil {
+				ddnsRemoteError = err.Error()
+				slog.Warn("poller: DDNS remote script sync failed", "host_id", electionResult.Leader.ID, "error", err)
+			} else {
+				ddnsRemoteSynced = true
+			}
+
 			ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
 			resolvedIPs = ips
 			domainMatched = ok
@@ -296,6 +305,12 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 				ddnsDomain = cfRecord
 				if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
 					slog.Error("poller: DDNS update failed", "error", err)
+				}
+				if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfToken, cfZone, cfRecord); err != nil {
+					ddnsRemoteError = err.Error()
+					slog.Warn("poller: DDNS remote script sync failed", "host_id", electionResult.Leader.ID, "error", err)
+				} else {
+					ddnsRemoteSynced = true
 				}
 				ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
 				resolvedIPs = ips
@@ -323,6 +338,10 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 				payload["ddns_expected_ip"] = electionResult.Leader.IP
 				payload["ddns_resolved_ips"] = resolvedIPs
 				payload["ddns_match"] = domainMatched
+				payload["ddns_remote_synced"] = ddnsRemoteSynced
+				if ddnsRemoteError != "" {
+					payload["ddns_remote_error"] = ddnsRemoteError
+				}
 			}
 			p.notifier.Send("leader_changed", payload)
 

@@ -293,6 +293,15 @@ a:hover { color: var(--link-hover); }
     margin-top: 2px;
 }
 
+body.theme-light .settings-main .section-hint,
+body.theme-light .settings-main .form-label,
+body.theme-light .settings-main .checkbox-label,
+body.theme-light .settings-main .label-hint,
+body.theme-light .settings-main .table th,
+body.theme-light .settings-main .table td {
+    color: #111827 !important;
+}
+
 .host-name { font-weight: 600; font-size: 14px; }
 .host-ip { font-size: 12px; color: #64748b; margin-top: 2px; }
 .host-name-sm { font-weight: 600; font-size: 13px; }
