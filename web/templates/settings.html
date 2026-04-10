@@ -35,17 +35,20 @@
 
   <!-- 主机管理 -->
   <div class="glass-card mb-24">
-    <div class="flex justify-between items-center mb-16">
+    <div class="flex justify-between items-center mb-16 settings-host-toolbar">
       <div>
         <div class="section-title">主机管理</div>
         <div class="section-hint">管理主机池中的所有主机</div>
       </div>
-      <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
+      <div class="settings-host-actions">
+        <div class="w-240">
+          <label class="form-label">Pool 列表（必选）</label>
+          <select id="host-pool-filter" class="form-input" onchange="applyHostPoolFilter()"></select>
+        </div>
+        <button class="btn btn-primary" onclick="openAddHostModal()">+ 添加主机</button>
+      </div>
     </div>
-    <div class="mb-16 w-240">
-      <label class="form-label">Pool 列表（必选）</label>
-      <select id="host-pool-filter" class="form-input" onchange="applyHostPoolFilter()"></select>
-    </div>
+    <div class="table-wrap">
     <table class="table">
       <thead>
         <tr>
@@ -76,6 +79,7 @@
         {{end}}
       </tbody>
     </table>
+    </div>
   </div>
 
   <!-- 默认模板 -->

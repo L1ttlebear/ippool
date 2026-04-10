@@ -576,6 +576,22 @@ a:hover { color: var(--link-hover); }
 .gap-8 { gap: 8px; }
 .gap-12 { gap: 12px; }
 
+.settings-host-toolbar {
+    align-items: flex-end;
+}
+
+.settings-host-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 980px) {
     .settings-layout { grid-template-columns: 1fr; gap: 12px; }
     .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -632,6 +648,23 @@ a:hover { color: var(--link-hover); }
     .stats-grid { grid-template-columns: 1fr; }
     .pool-carrier-grid { grid-template-columns: 1fr; }
     .glass-card { padding: 14px; border-radius: 14px; }
+
+    .settings-host-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .settings-host-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .w-240,
+    .w-220,
+    .w-320 {
+        max-width: 100%;
+    }
 
     .side-menu {
         width: 86vw;
