@@ -582,6 +582,35 @@ a:hover { color: var(--link-hover); }
     max-width: 520px;
 }
 
+#host-modal .modal {
+    color: #111827;
+}
+
+#host-modal .modal-title {
+    color: #111827;
+}
+
+#host-modal label,
+#host-modal .form-label,
+#host-modal .checkbox-label {
+    color: #334155 !important;
+}
+
+#host-modal .form-input {
+    color: #111827 !important;
+    background: #ffffff !important;
+    border-color: #d1d5db !important;
+}
+
+#host-modal .form-input::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+#host-modal .section-hint {
+    color: #64748b;
+}
+
 .host-install-progress {
     margin: 0 0 14px;
     padding: 10px 12px;
