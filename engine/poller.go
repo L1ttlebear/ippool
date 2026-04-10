@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -263,21 +264,34 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 			if strings.TrimSpace(rule.Pool) != strings.TrimSpace(electionResult.Leader.Pool) {
 				continue
 			}
-			cfToken := strings.TrimSpace(rule.CFApiToken)
-			cfZone := strings.TrimSpace(rule.CFZoneID)
 			cfRecord := strings.TrimSpace(rule.RecordName)
-			if cfToken == "" || cfZone == "" || cfRecord == "" {
+			if cfRecord == "" {
 				continue
 			}
 
 			ddnsEnabled = true
 			ddnsDomain = cfRecord
-			if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
-				slog.Error("poller: DDNS update failed", "pool", electionResult.Leader.Pool, "domain", cfRecord, "error", err)
+
+			cfEmail := strings.TrimSpace(rule.CFEmail)
+			cfKey := strings.TrimSpace(rule.CFApiKey)
+			cfZoneName := strings.TrimSpace(rule.CFZoneName)
+			cfToken := strings.TrimSpace(rule.CFApiToken)
+			cfZoneID := strings.TrimSpace(rule.CFZoneID)
+
+			var ddnsErr error
+			if cfEmail != "" && cfKey != "" && cfZoneName != "" {
+				ddnsErr = p.ddns.UpdateWithGlobalKey(cfEmail, cfKey, cfZoneName, cfRecord, electionResult.Leader.IP)
+			} else if cfToken != "" && cfZoneID != "" {
+				ddnsErr = p.ddns.Update(cfToken, cfZoneID, cfRecord, electionResult.Leader.IP)
+			} else {
+				ddnsErr = fmt.Errorf("missing ddns credentials")
+			}
+			if ddnsErr != nil {
+				slog.Error("poller: DDNS update failed", "pool", electionResult.Leader.Pool, "domain", cfRecord, "error", ddnsErr)
 				continue
 			}
 
-			if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfToken, cfZone, cfRecord); err != nil {
+			if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfEmail, cfKey, cfZoneName, cfRecord); err != nil {
 				ddnsRemoteError = err.Error()
 				slog.Warn("poller: DDNS remote script sync failed", "host_id", electionResult.Leader.ID, "error", err)
 			} else {
@@ -294,23 +308,40 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 		}
 
 		if !ddnsEnabled {
-			cfToken, _ := config.GetAs[string](config.CFApiTokenKey, "")
-			cfZone, _ := config.GetAs[string](config.CFZoneIDKey, "")
 			cfRecord, _ := config.GetAs[string](config.CFRecordNameKey, "")
-			cfToken = strings.TrimSpace(cfToken)
-			cfZone = strings.TrimSpace(cfZone)
 			cfRecord = strings.TrimSpace(cfRecord)
-			if cfToken != "" && cfZone != "" && cfRecord != "" {
+			cfEmail, _ := config.GetAs[string](config.CFEmailKey, "")
+			cfKey, _ := config.GetAs[string](config.CFApiKeyKey, "")
+			cfZoneName, _ := config.GetAs[string](config.CFZoneNameKey, "")
+			cfEmail = strings.TrimSpace(cfEmail)
+			cfKey = strings.TrimSpace(cfKey)
+			cfZoneName = strings.TrimSpace(cfZoneName)
+			cfToken, _ := config.GetAs[string](config.CFApiTokenKey, "")
+			cfZoneID, _ := config.GetAs[string](config.CFZoneIDKey, "")
+			cfToken = strings.TrimSpace(cfToken)
+			cfZoneID = strings.TrimSpace(cfZoneID)
+
+			if cfRecord != "" {
 				ddnsEnabled = true
 				ddnsDomain = cfRecord
-				if err := p.ddns.Update(cfToken, cfZone, cfRecord, electionResult.Leader.IP); err != nil {
+				var err error
+				if cfEmail != "" && cfKey != "" && cfZoneName != "" {
+					err = p.ddns.UpdateWithGlobalKey(cfEmail, cfKey, cfZoneName, cfRecord, electionResult.Leader.IP)
+				} else if cfToken != "" && cfZoneID != "" {
+					err = p.ddns.Update(cfToken, cfZoneID, cfRecord, electionResult.Leader.IP)
+				} else {
+					err = fmt.Errorf("missing ddns credentials")
+				}
+				if err != nil {
 					slog.Error("poller: DDNS update failed", "error", err)
 				}
-				if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfToken, cfZone, cfRecord); err != nil {
-					ddnsRemoteError = err.Error()
-					slog.Warn("poller: DDNS remote script sync failed", "host_id", electionResult.Leader.ID, "error", err)
-				} else {
-					ddnsRemoteSynced = true
+				if cfEmail != "" && cfKey != "" && cfZoneName != "" {
+					if err := p.ddns.SyncRemoteScript(*electionResult.Leader, cfEmail, cfKey, cfZoneName, cfRecord); err != nil {
+						ddnsRemoteError = err.Error()
+						slog.Warn("poller: DDNS remote script sync failed", "host_id", electionResult.Leader.ID, "error", err)
+					} else {
+						ddnsRemoteSynced = true
+					}
 				}
 				ok, ips, err := p.ddns.VerifyResolvedIP(cfRecord, electionResult.Leader.IP)
 				resolvedIPs = ips

@@ -35,8 +35,16 @@ func applyDDNSRulesNow(rules []config.DdnsPoolRule) []ddnsRuleApplyStatus {
 			res = append(res, item)
 			continue
 		}
-		if pool == "" || domain == "" || strings.TrimSpace(r.CFApiToken) == "" || strings.TrimSpace(r.CFZoneID) == "" {
-			item.Message = "规则不完整，需填写 pool/token/zone/record"
+		if pool == "" || domain == "" {
+			item.Message = "规则不完整，需填写 pool/record"
+			res = append(res, item)
+			continue
+		}
+
+		useGlobalKey := strings.TrimSpace(r.CFEmail) != "" && strings.TrimSpace(r.CFApiKey) != "" && strings.TrimSpace(r.CFZoneName) != ""
+		useToken := strings.TrimSpace(r.CFApiToken) != "" && strings.TrimSpace(r.CFZoneID) != ""
+		if !useGlobalKey && !useToken {
+			item.Message = "规则不完整，需填写 CFUSER+CFKEY+CFZONE_NAME（推荐）或旧版 token+zone_id"
 			res = append(res, item)
 			continue
 		}
@@ -51,8 +59,14 @@ func applyDDNSRulesNow(rules []config.DdnsPoolRule) []ddnsRuleApplyStatus {
 		item.LeaderName = leader.Name
 		item.ExpectedIP = leader.IP
 
-		if err := updater.Update(strings.TrimSpace(r.CFApiToken), strings.TrimSpace(r.CFZoneID), domain, leader.IP); err != nil {
-			item.Message = fmt.Sprintf("更新 DDNS 失败: %v", err)
+		var updateErr error
+		if useGlobalKey {
+			updateErr = updater.UpdateWithGlobalKey(strings.TrimSpace(r.CFEmail), strings.TrimSpace(r.CFApiKey), strings.TrimSpace(r.CFZoneName), domain, leader.IP)
+		} else {
+			updateErr = updater.Update(strings.TrimSpace(r.CFApiToken), strings.TrimSpace(r.CFZoneID), domain, leader.IP)
+		}
+		if updateErr != nil {
+			item.Message = fmt.Sprintf("更新 DDNS 失败: %v", updateErr)
 			res = append(res, item)
 			continue
 		}

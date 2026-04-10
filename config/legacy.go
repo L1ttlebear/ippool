@@ -3,10 +3,14 @@ package config
 // AppConfig 系统配置
 type DdnsPoolRule struct {
 	Pool       string `json:"pool"`
-	CFApiToken string `json:"cf_api_token"`
-	CFZoneID   string `json:"cf_zone_id"`
+	CFEmail    string `json:"cf_email"`
+	CFApiKey   string `json:"cf_api_key"`
+	CFZoneName string `json:"cf_zone_name"`
 	RecordName string `json:"record_name"`
 	Enabled    bool   `json:"enabled"`
+	// 兼容旧配置（token + zone_id）
+	CFApiToken string `json:"cf_api_token"`
+	CFZoneID   string `json:"cf_zone_id"`
 }
 
 type AppConfig struct {
@@ -15,6 +19,9 @@ type AppConfig struct {
 	MaxHealthConcurrency int    `json:"max_health_concurrency" default:"10"`
 	CFApiToken           string `json:"cf_api_token" default:""`
 	CFZoneID             string `json:"cf_zone_id" default:""`
+	CFEmail              string `json:"cf_email" default:""`
+	CFApiKey             string `json:"cf_api_key" default:""`
+	CFZoneName           string `json:"cf_zone_name" default:""`
 	CFRecordName         string `json:"cf_record_name" default:""`
 	TelegramBotToken     string `json:"telegram_bot_token" default:""`
 	TelegramChatID       string `json:"telegram_chat_id" default:""`
@@ -37,6 +44,9 @@ const (
 	MaxHealthConcurrencyKey = "max_health_concurrency"
 	CFApiTokenKey           = "cf_api_token"
 	CFZoneIDKey             = "cf_zone_id"
+	CFEmailKey              = "cf_email"
+	CFApiKeyKey             = "cf_api_key"
+	CFZoneNameKey           = "cf_zone_name"
 	CFRecordNameKey         = "cf_record_name"
 	TelegramBotTokenKey     = "telegram_bot_token"
 	TelegramChatIDKey       = "telegram_chat_id"

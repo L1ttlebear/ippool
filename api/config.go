@@ -21,6 +21,7 @@ func GetConfig(c *gin.Context) {
 	// Mask sensitive fields - show only last 4 chars
 	sensitiveKeys := []string{
 		config.CFApiTokenKey,
+		config.CFApiKeyKey,
 		config.TelegramBotTokenKey,
 	}
 	for _, key := range sensitiveKeys {
@@ -40,6 +41,9 @@ func GetConfig(c *gin.Context) {
 				}
 				if token, ok := m["cf_api_token"].(string); ok && len(token) > 4 {
 					m["cf_api_token"] = strings.Repeat("*", len(token)-4) + token[len(token)-4:]
+				}
+				if key, ok := m["cf_api_key"].(string); ok && len(key) > 4 {
+					m["cf_api_key"] = strings.Repeat("*", len(key)-4) + key[len(key)-4:]
 				}
 			}
 			cfg[config.DDNSPoolRulesKey] = arr
@@ -137,6 +141,9 @@ func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
 			for _, r := range typed {
 				arr = append(arr, map[string]any{
 					"pool":         r.Pool,
+					"cf_email":     r.CFEmail,
+					"cf_api_key":   r.CFApiKey,
+					"cf_zone_name": r.CFZoneName,
 					"cf_api_token": r.CFApiToken,
 					"cf_zone_id":   r.CFZoneID,
 					"record_name":  r.RecordName,
@@ -160,6 +167,9 @@ func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
 		pool := strings.TrimSpace(anyToString(m["pool"]))
 		token := strings.TrimSpace(anyToString(m["cf_api_token"]))
 		zone := strings.TrimSpace(anyToString(m["cf_zone_id"]))
+		email := strings.TrimSpace(anyToString(m["cf_email"]))
+		apiKey := strings.TrimSpace(anyToString(m["cf_api_key"]))
+		zoneName := strings.TrimSpace(anyToString(m["cf_zone_name"]))
 		record := strings.TrimSpace(anyToString(m["record_name"]))
 		enabled := anyToBool(m["enabled"], true)
 
@@ -180,6 +190,9 @@ func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
 
 		result = append(result, config.DdnsPoolRule{
 			Pool:       pool,
+			CFEmail:    email,
+			CFApiKey:   apiKey,
+			CFZoneName: zoneName,
 			CFApiToken: token,
 			CFZoneID:   zone,
 			RecordName: record,
