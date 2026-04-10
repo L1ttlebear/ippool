@@ -206,6 +206,30 @@ a:hover { color: var(--link-hover); }
 
 .settings-main, .monitor-main { min-width: 0; }
 
+.section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.section-stack > .mb-24,
+.section-stack > .mb-16,
+.section-stack > .glass-card,
+.section-stack > .monitor-layout,
+.section-stack > .stats-grid {
+    margin-bottom: 0;
+}
+
+.section-stack > .page-header {
+    margin-bottom: 2px;
+}
+
+@media (max-width: 768px) {
+    .section-stack {
+        gap: 10px;
+    }
+}
+
 .glass-card {
     background: var(--glass-bg);
     border: 1px solid var(--border-soft);
