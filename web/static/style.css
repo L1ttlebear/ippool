@@ -688,6 +688,43 @@ body.theme-light .settings-main .table td {
     padding: 12px;
 }
 
+.ddns-rule-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ddns-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+}
+
+.ddns-badge.ok {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.ddns-badge.fail {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.ddns-badge.pending {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+}
+
 .ssh-status {
     font-size: 11px;
     line-height: 1.35;

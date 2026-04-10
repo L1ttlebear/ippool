@@ -269,6 +269,7 @@
 <script>
 let hostSaveInProgress = false;
 let ddnsRules = [];
+let ddnsRuleStatuses = {};
 
 function initHostPoolFilter() {
   const select = document.getElementById('host-pool-filter');
@@ -684,6 +685,10 @@ function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 
+function getDDNSStatusKey(pool, domain) {
+  return `${String(pool || '').trim()}::${String(domain || '').trim()}`;
+}
+
 function renderDDNSRules() {
   const wrap = document.getElementById('ddns-rules');
   if (!wrap) return;
@@ -700,7 +705,18 @@ function renderDDNSRules() {
   ddnsRules.forEach((r, idx) => {
     const row = document.createElement('div');
     row.className = 'ddns-rule-row mb-16';
+
+    const statusKey = getDDNSStatusKey(r.pool, r.record_name);
+    const st = ddnsRuleStatuses[statusKey];
+    const statusClass = st ? (st.ok ? 'ddns-badge ok' : 'ddns-badge fail') : 'ddns-badge pending';
+    const statusText = st ? (st.ok ? 'DDNS 成功' : 'DDNS 失败') : '未校验';
+    const statusDetail = st ? escapeHtml(st.message || '') : '保存后会自动按 Pool Leader 同步并校验';
+
     row.innerHTML = `
+      <div class="ddns-rule-head mb-8">
+        <span class="${statusClass}">${statusText}</span>
+        <span class="section-hint">${statusDetail}</span>
+      </div>
       <div class="mb-16">
         <label class="form-label">主机池名（Pool）</label>
         <input class="form-input" type="text" data-k="pool" data-i="${idx}" value="${escapeHtml(r.pool || '')}" placeholder="例如 default / hk / us">
@@ -775,8 +791,16 @@ async function initDDNSRules() {
         enabled: true,
       }];
     }
+
+    ddnsRuleStatuses = {};
+    const statuses = Array.isArray(data.ddns_rule_statuses) ? data.ddns_rule_statuses : [];
+    statuses.forEach(st => {
+      const key = getDDNSStatusKey(st.pool, st.domain);
+      ddnsRuleStatuses[key] = st;
+    });
   } catch (e) {
     ddnsRules = [];
+    ddnsRuleStatuses = {};
   }
   renderDDNSRules();
 }
@@ -787,7 +811,19 @@ async function saveDDNSRules() {
   const resp = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   const data = await resp.json();
   if (resp.ok) {
-    alert('保存成功');
+    const applyResults = Array.isArray(data.ddns_apply_results) ? data.ddns_apply_results : [];
+    ddnsRuleStatuses = {};
+    applyResults.forEach(st => {
+      const key = getDDNSStatusKey(st.pool, st.domain);
+      ddnsRuleStatuses[key] = st;
+    });
+    renderDDNSRules();
+
+    const lines = ['保存成功，已自动按 Pool Leader 同步 DDNS：'];
+    applyResults.forEach(st => {
+      lines.push(`- [${st.pool}] ${st.domain}: ${st.ok ? '成功' : '失败'} (${st.message || '-'})`);
+    });
+    alert(lines.join('\n'));
     await initDDNSRules();
   } else {
     alert('保存失败: ' + (data.error || ''));

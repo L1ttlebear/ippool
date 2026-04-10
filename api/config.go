@@ -46,6 +46,9 @@ func GetConfig(c *gin.Context) {
 		}
 	}
 
+	rules, _ := config.GetAs[[]config.DdnsPoolRule](config.DDNSPoolRulesKey, []config.DdnsPoolRule{})
+	cfg["ddns_rule_statuses"] = getDDNSRuleStatuses(rules)
+
 	c.JSON(http.StatusOK, cfg)
 }
 
@@ -114,7 +117,15 @@ func UpdateConfig(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "config updated"})
+
+	resp := gin.H{"message": "config updated"}
+	if rulesRaw, ok := updates[config.DDNSPoolRulesKey]; ok {
+		rules, err := normalizeDDNSRules(rulesRaw)
+		if err == nil {
+			resp["ddns_apply_results"] = applyDDNSRulesNow(rules)
+		}
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
