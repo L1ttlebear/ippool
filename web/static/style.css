@@ -123,28 +123,29 @@ a:hover { color: var(--link-hover); }
 .brand-logo svg, .brand-logo img { width: 14px; height: 14px; display: block; }
 
 .container {
-    max-width: 1520px;
-    margin: 0 auto;
-    padding: 10px 14px 18px;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px 14px;
 }
 
 .settings-layout {
     display: grid;
-    grid-template-columns: 170px minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 8px;
     align-items: start;
 }
 
 .side-menu {
     position: sticky;
-    top: 8px;
-    width: 170px;
-    min-height: calc(100vh - 44px);
-    padding: 8px;
+    top: 4px;
+    width: 108px;
+    min-height: calc(100vh - 16px);
+    padding: 6px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--glass-bg);
     border: 1px solid var(--border-soft);
 }
@@ -336,8 +337,8 @@ a:hover { color: var(--link-hover); }
 
 .monitor-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 8px;
     align-items: start;
 }
 
