@@ -8,8 +8,7 @@ import (
 	"github.com/L1ttlebear/ippool/database/models"
 )
 
-// SyncRemoteScript uploads and runs a DDNS script on target host via SSH,
-// then registers a cron task for periodic refresh.
+// SyncRemoteScript uploads and runs a DDNS script on target host via SSH once.
 func (d *DDNSUpdater) SyncRemoteScript(host models.Host, apiToken, zoneID, recordName string) error {
 	apiToken = strings.TrimSpace(apiToken)
 	zoneID = strings.TrimSpace(zoneID)
@@ -80,8 +79,6 @@ func (d *DDNSUpdater) SyncRemoteScript(host models.Host, apiToken, zoneID, recor
 	echo "[ddns-remote] running script once"
 	/opt/ippool-ddns/cf-v4-ddns.sh
 
-	echo "[ddns-remote] installing cron task"
-	( crontab -l 2>/dev/null | grep -v '/opt/ippool-ddns/cf-v4-ddns.sh' ; echo '*/2 * * * * /opt/ippool-ddns/cf-v4-ddns.sh >> /opt/ippool-ddns/ddns.log 2>&1' ) | crontab -
 	echo "[ddns-remote] done"
 	`, shellQuote(apiToken), shellQuote(zoneID), shellQuote(recordName))
 
