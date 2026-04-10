@@ -214,6 +214,23 @@ a:hover { color: var(--link-hover); }
     box-shadow: none;
 }
 
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.page-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--title-color);
+}
+
+.page-subtitle {
+    font-size: 12px;
+    color: var(--muted-text);
+}
+
 .section-title {
     color: var(--title-color);
     font-size: 13px;
@@ -222,7 +239,7 @@ a:hover { color: var(--link-hover); }
 }
 
 .section-hint {
-    color: #94a3b8;
+    color: var(--muted-text);
     font-size: 10px;
     margin-top: 2px;
 }

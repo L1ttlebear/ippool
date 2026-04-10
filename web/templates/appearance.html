@@ -31,20 +31,24 @@
     </aside>
 
     <div class="settings-main">
+      <div class="page-header mb-24">
+        <div class="page-title">外观设置</div>
+        <div class="page-subtitle">配置站点标题、导航图标与全局背景，打造个性化面板</div>
+      </div>
       <div class="glass-card mb-24" id="appearance-config">
         <div class="section-title mb-16">外观配置</div>
         <div class="section-hint mb-16">修改网页标题、导航 SVG 与全站背景图（仅支持远程 http/https 图片链接）</div>
         <form id="appearance-form">
           <div class="mb-16">
-            <label style="display:block;margin-bottom:6px;font-size:12px;color:#64748b;">网页标题</label>
+            <label class="form-label">网页标题</label>
             <input class="form-input" type="text" name="site_title" value="{{index .Config "site_title"}}" maxlength="80" placeholder="例如：IPP 控制台">
           </div>
           <div class="mb-16">
-            <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">导航 SVG（可选）</label>
-            <textarea class="form-input" name="site_logo_svg" rows="6" style="resize:vertical;white-space:pre-wrap;" placeholder="粘贴 <svg>...</svg>">{{index .Config "site_logo_svg"}}</textarea>
+            <label class="form-label">导航 SVG（可选）</label>
+            <textarea class="form-input textarea-wrap" name="site_logo_svg" rows="6" placeholder="粘贴 <svg>...</svg>">{{index .Config "site_logo_svg"}}</textarea>
           </div>
           <div class="mb-16">
-            <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">背景图片链接（仅远程 URL）</label>
+            <label class="form-label">背景图片链接（仅远程 URL）</label>
             <input class="form-input" type="text" name="background_image_url" value="{{index .Config "background_image_url"}}" placeholder="https://example.com/background.jpg">
           </div>
           <button class="btn btn-primary" type="button" onclick="saveAppearanceConfig()">保存并应用</button>
