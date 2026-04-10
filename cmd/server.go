@@ -125,6 +125,7 @@ func runServer(_ *cobra.Command, _ []string) {
 		auth.PUT("/api/hosts/:id/state", api.SetHostState(sm))
 		auth.POST("/api/hosts/:id/check-ssh", api.CheckHostSSH)
 		auth.POST("/api/hosts/:id/install-agent", api.InstallHostAgent)
+		auth.GET("/api/hosts/install-agent/tasks/:task_id", api.GetAgentInstallTask)
 
 		// Config API
 		auth.GET("/api/config", api.GetConfig)

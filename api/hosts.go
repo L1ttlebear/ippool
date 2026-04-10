@@ -3,10 +3,13 @@ package api
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +18,131 @@ import (
 	"github.com/L1ttlebear/ippool/database/models"
 	"github.com/L1ttlebear/ippool/engine"
 )
+type agentInstallTask struct {
+	ID        string   `json:"task_id"`
+	Status    string   `json:"status"`
+	Progress  int      `json:"progress"`
+	Step      string   `json:"step"`
+	Logs      []string `json:"logs"`
+	HostID    uint     `json:"host_id"`
+	HostName  string   `json:"host_name"`
+	StartedAt int64    `json:"started_at"`
+	UpdatedAt int64    `json:"updated_at"`
+	Error     string   `json:"error,omitempty"`
+}
+
+var (
+	agentInstallTasksMu sync.RWMutex
+	agentInstallTasks   = map[string]*agentInstallTask{}
+	stepProgressRegexp  = regexp.MustCompile(`\[(\d+)/(\d+)\]`)
+)
+
+func newAgentInstallTask(host models.Host) *agentInstallTask {
+	id, _ := generateAgentSharedToken()
+	now := time.Now().Unix()
+	return &agentInstallTask{
+		ID:        "task_" + id,
+		Status:    "running",
+		Progress:  5,
+		Step:      "正在连接主机...",
+		Logs:      []string{"开始安装 Agent..."},
+		HostID:    host.ID,
+		HostName:  host.Name,
+		StartedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func setAgentInstallTask(task *agentInstallTask) {
+	agentInstallTasksMu.Lock()
+	defer agentInstallTasksMu.Unlock()
+	agentInstallTasks[task.ID] = task
+}
+
+func getAgentInstallTask(id string) (*agentInstallTask, bool) {
+	agentInstallTasksMu.RLock()
+	defer agentInstallTasksMu.RUnlock()
+	t, ok := agentInstallTasks[id]
+	if !ok {
+		return nil, false
+	}
+	cp := *t
+	cp.Logs = append([]string(nil), t.Logs...)
+	return &cp, true
+}
+
+func appendAgentInstallTaskLog(taskID, line string) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return
+	}
+	p := parseInstallProgress(line)
+	now := time.Now().Unix()
+	agentInstallTasksMu.Lock()
+	defer agentInstallTasksMu.Unlock()
+	t, ok := agentInstallTasks[taskID]
+	if !ok {
+		return
+	}
+	t.Logs = append(t.Logs, line)
+	if len(t.Logs) > 300 {
+		t.Logs = t.Logs[len(t.Logs)-300:]
+	}
+	if p > 0 {
+		t.Progress = p
+		t.Step = line
+	} else {
+		t.Step = line
+	}
+	t.UpdatedAt = now
+}
+
+func finishAgentInstallTask(taskID string, ok bool, errMsg string) {
+	now := time.Now().Unix()
+	agentInstallTasksMu.Lock()
+	defer agentInstallTasksMu.Unlock()
+	t, exists := agentInstallTasks[taskID]
+	if !exists {
+		return
+	}
+	if ok {
+		t.Status = "success"
+		t.Progress = 100
+		t.Step = "安装完成"
+	} else {
+		t.Status = "failed"
+		if t.Progress < 5 {
+			t.Progress = 5
+		}
+		t.Step = "安装失败"
+		t.Error = errMsg
+		if strings.TrimSpace(errMsg) != "" {
+			t.Logs = append(t.Logs, "ERROR: "+errMsg)
+		}
+	}
+	t.UpdatedAt = now
+}
+
+func parseInstallProgress(line string) int {
+	m := stepProgressRegexp.FindStringSubmatch(line)
+	if len(m) != 3 {
+		return 0
+	}
+	cur, err1 := strconv.Atoi(m[1])
+	total, err2 := strconv.Atoi(m[2])
+	if err1 != nil || err2 != nil || total <= 0 {
+		return 0
+	}
+	p := int(float64(cur) / float64(total) * 100.0)
+	if p < 5 {
+		p = 5
+	}
+	if p > 99 {
+		p = 99
+	}
+	return p
+}
+
 // GetHosts returns all hosts.
 func GetHosts(c *gin.Context) {
 	db := dbcore.GetDBInstance()
@@ -102,21 +230,19 @@ func CreateHost(c *gin.Context) {
 			interval = 30
 		}
 
-		installer := &engine.AgentInstaller{}
-		res := installer.Install(host, serverURL, token, interval)
-		if !res.Success {
-			c.JSON(http.StatusCreated, gin.H{
-				"host":                    host,
-				"agent_install_success":   false,
-				"agent_install_error":     res.Error,
-				"agent_install_output":    res.Output,
-			})
-			return
-		}
+		task := newAgentInstallTask(host)
+		setAgentInstallTask(task)
+		go runAgentInstallTask(task.ID, host, serverURL, token, interval)
+
 		c.JSON(http.StatusCreated, gin.H{
-			"host":                  host,
-			"agent_install_success": true,
-			"agent_install_output":  res.Output,
+			"host": host,
+			"agent_install_task": gin.H{
+				"task_id":   task.ID,
+				"status":    task.Status,
+				"progress":  task.Progress,
+				"step":      task.Step,
+				"started_at": task.StartedAt,
+			},
 		})
 		return
 	}
@@ -294,23 +420,46 @@ func InstallHostAgent(c *gin.Context) {
 		interval = 30
 	}
 
-	installer := &engine.AgentInstaller{}
-	res := installer.Install(host, serverURL, token, interval)
-	if !res.Success {
-		c.JSON(http.StatusOK, gin.H{
-			"host":                  host,
-			"agent_install_success": false,
-			"agent_install_error":   res.Error,
-			"agent_install_output":  res.Output,
-		})
-		return
-	}
+	task := newAgentInstallTask(host)
+	setAgentInstallTask(task)
+	go runAgentInstallTask(task.ID, host, serverURL, token, interval)
 
 	c.JSON(http.StatusOK, gin.H{
-		"host":                  host,
-		"agent_install_success": true,
-		"agent_install_output":  res.Output,
+		"host": host,
+		"agent_install_task": gin.H{
+			"task_id":   task.ID,
+			"status":    task.Status,
+			"progress":  task.Progress,
+			"step":      task.Step,
+			"started_at": task.StartedAt,
+		},
 	})
+}
+
+func GetAgentInstallTask(c *gin.Context) {
+	taskID := strings.TrimSpace(c.Param("task_id"))
+	if taskID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task id"})
+		return
+	}
+	t, ok := getAgentInstallTask(taskID)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		return
+	}
+	c.JSON(http.StatusOK, t)
+}
+
+func runAgentInstallTask(taskID string, host models.Host, serverURL, token string, interval int) {
+	installer := &engine.AgentInstaller{}
+	res := installer.InstallWithProgress(host, serverURL, token, interval, func(line string) {
+		appendAgentInstallTaskLog(taskID, line)
+	})
+	if !res.Success {
+		finishAgentInstallTask(taskID, false, fmt.Sprintf("%s\n%s", res.Error, strings.TrimSpace(res.Output)))
+		return
+	}
+	finishAgentInstallTask(taskID, true, "")
 }
 
 func ensureAgentSharedToken() (string, error) {

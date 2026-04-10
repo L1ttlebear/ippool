@@ -252,6 +252,7 @@
       <div class="host-install-progress-track">
         <div id="host-install-progress-bar" class="host-install-progress-bar"></div>
       </div>
+      <pre id="host-install-progress-log" class="host-install-progress-log"></pre>
     </div>
     <div id="host-modal-error" class="error-text"></div>
     <div class="flex gap-8">
@@ -315,17 +316,43 @@ function applyHostPoolFilter() {
   });
 }
 
+let hostInstallPollTimer = null;
+let hostInstallLastLogCount = 0;
+
+function stopHostInstallPolling() {
+  if (hostInstallPollTimer) {
+    clearTimeout(hostInstallPollTimer);
+    hostInstallPollTimer = null;
+  }
+}
+
+function appendHostInstallLog(lines) {
+  const logEl = document.getElementById('host-install-progress-log');
+  if (!logEl || !Array.isArray(lines) || lines.length === 0) return;
+  const text = lines.join('\n');
+  if (logEl.textContent) {
+    logEl.textContent += '\n' + text;
+  } else {
+    logEl.textContent = text;
+  }
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
 function setHostInstallProgress(visible, message = '正在安装 Agent，请稍候...', percent = null) {
   const box = document.getElementById('host-install-progress');
   const text = document.getElementById('host-install-progress-text');
   const bar = document.getElementById('host-install-progress-bar');
-  if (!box || !text || !bar) return;
+  const logEl = document.getElementById('host-install-progress-log');
+  if (!box || !text || !bar || !logEl) return;
 
   if (!visible) {
     box.style.display = 'none';
     text.textContent = '';
     bar.style.width = '0%';
     bar.classList.remove('indeterminate');
+    logEl.textContent = '';
+    hostInstallLastLogCount = 0;
+    stopHostInstallPolling();
     return;
   }
 
@@ -339,6 +366,73 @@ function setHostInstallProgress(visible, message = '正在安装 Agent，请稍�
     bar.classList.add('indeterminate');
     bar.style.width = '35%';
   }
+}
+
+async function pollHostInstallTask(taskId, onSuccessReload = false) {
+  stopHostInstallPolling();
+  if (!taskId) throw new Error('缺少任务 ID');
+
+  const errEl = document.getElementById('host-modal-error');
+
+  return await new Promise((resolve, reject) => {
+    const run = async () => {
+      try {
+        const resp = await fetch('/api/hosts/install-agent/tasks/' + encodeURIComponent(taskId));
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.error || '获取安装进度失败');
+        }
+
+        const logs = Array.isArray(data.logs) ? data.logs : [];
+        const incremental = logs.slice(hostInstallLastLogCount);
+        if (incremental.length > 0) {
+          appendHostInstallLog(incremental);
+          hostInstallLastLogCount = logs.length;
+        }
+
+        const p = Number(data.progress);
+        const status = data.status || 'running';
+        const stepText = data.step || '正在安装 Agent...';
+        const finalPercent = Number.isFinite(p) ? p : null;
+        setHostInstallProgress(true, stepText, finalPercent);
+
+        if (status === 'running') {
+          hostInstallPollTimer = setTimeout(run, 900);
+          return;
+        }
+
+        stopHostInstallPolling();
+
+        if (status === 'success') {
+          setHostInstallProgress(true, 'Agent 安装完成', 100);
+          if (onSuccessReload) {
+            setTimeout(() => location.reload(), 500);
+          } else {
+            setTimeout(() => setHostInstallProgress(false), 900);
+          }
+          resolve(data);
+          return;
+        }
+
+        setHostInstallProgress(true, 'Agent 安装失败，请检查日志', Number.isFinite(p) ? p : 100);
+        if (errEl) {
+          errEl.textContent = data.error || 'Agent 安装失败';
+          errEl.style.display = 'block';
+        }
+        reject(new Error(data.error || 'Agent 安装失败'));
+      } catch (e) {
+        setHostInstallProgress(true, '获取安装进度失败', 100);
+        if (errEl) {
+          errEl.textContent = e.message || '获取安装进度失败';
+          errEl.style.display = 'block';
+        }
+        stopHostInstallPolling();
+        reject(e);
+      }
+    };
+
+    run();
+  });
 }
 
 function setHostModalButtonsDisabled(disabled) {
@@ -385,6 +479,7 @@ function closeHostModal(force = false) {
   if (hostSaveInProgress && !force) {
     return;
   }
+  stopHostInstallPolling();
   setHostInstallProgress(false);
   document.getElementById('host-modal').classList.remove('active');
 }
@@ -462,15 +557,16 @@ async function saveHost() {
     }
 
     if (shouldInstallAgent) {
-      if (data.agent_install_success) {
-        setHostInstallProgress(true, 'Agent 安装完成，正在刷新列表...', 100);
-      } else {
-        const msg = data.agent_install_error || 'Agent 安装失败';
-        setHostInstallProgress(true, 'Agent 安装失败，请检查连接命令或 SSH 信息', 100);
-        errEl.textContent = msg;
-        errEl.style.display = 'block';
-        return;
+      const task = data.agent_install_task || {};
+      const taskId = task.task_id;
+      if (!taskId) {
+        throw new Error('未返回安装任务 ID');
       }
+      hostInstallLastLogCount = 0;
+      setHostInstallProgress(true, task.step || '正在安装 Agent...', Number(task.progress) || 5);
+      appendHostInstallLog(['安装任务已创建：' + taskId]);
+      await pollHostInstallTask(taskId, true);
+      return;
     }
 
     closeHostModal(true);
@@ -515,17 +611,19 @@ async function installHostAgentNow() {
     });
     const data = await resp.json();
 
-    if (!resp.ok || !data.agent_install_success) {
-      setHostInstallProgress(true, 'Agent 安装失败，请检查连接命令或 SSH 信息', 100);
-      errEl.textContent = data.error || data.agent_install_error || 'Agent 安装失败';
+    const task = data.agent_install_task || {};
+    const taskId = task.task_id;
+    if (!resp.ok || !taskId) {
+      setHostInstallProgress(true, 'Agent 安装任务创建失败', 100);
+      errEl.textContent = data.error || 'Agent 安装任务创建失败';
       errEl.style.display = 'block';
       return;
     }
 
-    setHostInstallProgress(true, 'Agent 安装完成', 100);
-    setTimeout(() => {
-      setHostInstallProgress(false);
-    }, 600);
+    hostInstallLastLogCount = 0;
+    setHostInstallProgress(true, task.step || '正在安装 Agent...', Number(task.progress) || 5);
+    appendHostInstallLog(['安装任务已创建：' + taskId]);
+    await pollHostInstallTask(taskId, false);
   } catch (e) {
     setHostInstallProgress(true, 'Agent 安装失败，请稍后重试', 100);
     errEl.textContent = '请求失败，请检查网络或服务状态';
