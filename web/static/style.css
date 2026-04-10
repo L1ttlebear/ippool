@@ -212,7 +212,16 @@ a:hover { color: var(--link-hover); }
 .side-menu-link.active {
     background: var(--surface-active);
     border-color: var(--border-strong);
-    color: #2563eb;
+    color: var(--link-color);
+    font-weight: 700;
+}
+
+.side-menu-link-placeholder {
+    opacity: 0.78;
+}
+
+.side-menu-link-placeholder:hover {
+    opacity: 1;
 }
 
 .side-icon { width: 13px; font-size: 11px; opacity: .8; display: inline-flex; justify-content: center; }
