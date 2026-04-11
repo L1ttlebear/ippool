@@ -133,6 +133,12 @@ func UpdateConfig(c *gin.Context) {
 }
 
 func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
+	existingRules, _ := config.GetAs[[]config.DdnsPoolRule](config.DDNSPoolRulesKey, []config.DdnsPoolRule{})
+	existingByPool := make(map[string]config.DdnsPoolRule, len(existingRules))
+	for _, er := range existingRules {
+		existingByPool[strings.TrimSpace(er.Pool)] = er
+	}
+
 	arr, ok := raw.([]any)
 	if !ok {
 		// 兼容前端直接传 []map / []struct 的情况
@@ -172,6 +178,14 @@ func normalizeDDNSRules(raw any) ([]config.DdnsPoolRule, error) {
 		zoneName := strings.TrimSpace(anyToString(m["cf_zone_name"]))
 		record := strings.TrimSpace(anyToString(m["record_name"]))
 		enabled := anyToBool(m["enabled"], true)
+
+		existing := existingByPool[pool]
+		if strings.Contains(token, "*") || token == "" {
+			token = strings.TrimSpace(existing.CFApiToken)
+		}
+		if strings.Contains(apiKey, "*") || apiKey == "" {
+			apiKey = strings.TrimSpace(existing.CFApiKey)
+		}
 
 		if pool == "" {
 			return nil, fmt.Errorf("ddns_pool_rules[%d].pool is required", i)
