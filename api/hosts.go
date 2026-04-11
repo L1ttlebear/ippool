@@ -202,6 +202,18 @@ func CreateHost(c *gin.Context) {
 	host.State = models.StateReady
 
 	db := dbcore.GetDBInstance()
+	if !poolExists(host.Pool) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "pool not found, please create it first"})
+		return
+	}
+	if host.Priority <= 0 {
+		next, err := getNextPriorityForPool(db, host.Pool)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		host.Priority = next
+	}
 	if err := db.Create(&host).Error; err != nil {
 		if isUniqueConstraintError(err) {
 			c.JSON(http.StatusConflict, gin.H{"error": "priority already exists in this pool"})
@@ -273,6 +285,10 @@ func UpdateHost(c *gin.Context) {
 
 	if updates.IP != "" && net.ParseIP(updates.IP) == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid IP address"})
+		return
+	}
+	if strings.TrimSpace(updates.Pool) != "" && !poolExists(updates.Pool) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "pool not found, please create it first"})
 		return
 	}
 
@@ -485,4 +501,26 @@ func generateAgentSharedToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+func poolExists(pool string) bool {
+	p := strings.TrimSpace(pool)
+	if p == "" {
+		return false
+	}
+	gdb := dbcore.GetDBInstance()
+	var cnt int64
+	if err := gdb.Model(&models.Pool{}).Where("name = ?", p).Count(&cnt).Error; err != nil {
+		return false
+	}
+	return cnt > 0
+}
+
+func getNextPriorityForPool(db any, pool string) (int, error) {
+	gdb := dbcore.GetDBInstance()
+	var maxPriority int
+	if err := gdb.Model(&models.Host{}).Where("pool = ?", strings.TrimSpace(pool)).Select("COALESCE(MAX(priority), 0)").Scan(&maxPriority).Error; err != nil {
+		return 0, err
+	}
+	return maxPriority + 1, nil
 }

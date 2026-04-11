@@ -46,6 +46,7 @@ func GetDBInstance() *gorm.DB {
 			&models.User{},
 			&models.Session{},
 			&models.Log{},
+			&models.Pool{},
 			&models.Host{},
 			&models.CheckRecord{},
 			&models.HostHeartbeat{},
@@ -53,6 +54,9 @@ func GetDBInstance() *gorm.DB {
 		if err != nil {
 			log.Fatalf("Failed to auto-migrate tables: %v", err)
 		}
+
+		ensureDefaultPool(instance)
+		syncPoolsFromHosts(instance)
 	})
 	return instance
 }

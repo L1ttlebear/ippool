@@ -117,6 +117,9 @@ func runServer(_ *cobra.Command, _ []string) {
 		auth.GET("/logout", api.GetLogout)
 
 		// Host API
+		auth.GET("/api/pools", api.GetPools)
+		auth.POST("/api/pools", api.CreatePool)
+		auth.DELETE("/api/pools/:name", api.DeletePool)
 		auth.GET("/api/hosts", api.GetHosts)
 		auth.GET("/api/hosts/:id", api.GetHost)
 		auth.POST("/api/hosts", api.CreateHost)

@@ -39,6 +39,24 @@
         <div class="page-subtitle">管理主机、DDNS、通知、心跳与账户安全配置</div>
       </div>
 
+  <!-- Pool 管理 -->
+  <div class="glass-card mb-24">
+    <div class="section-title mb-16">Pool 管理</div>
+    <div class="section-hint mb-16">先创建 Pool，再在“添加主机”中选择；若 Pool 下有主机则禁止删除。</div>
+    <div class="flex gap-8 mb-16">
+      <input class="form-input w-320" id="new-pool-name" type="text" placeholder="新 Pool 名称（a-zA-Z0-9_-）">
+      <button class="btn btn-primary" type="button" onclick="createPool()">创建 Pool</button>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Pool</th><th>主机数</th><th>操作</th></tr>
+        </thead>
+        <tbody id="pool-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- 主机管理 -->
   <div class="glass-card mb-24">
     <div class="flex justify-between items-center mb-16 settings-host-toolbar">
@@ -225,8 +243,9 @@
       <input class="form-input" type="number" id="host-priority" value="1">
     </div>
     <div class="mb-16">
-      <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">Pool</label>
-      <input class="form-input" type="text" id="host-pool" value="default">
+      <label class="form-label">Pool</label>
+      <select class="form-input" id="host-pool"></select>
+      <div class="section-hint mt-6">仅可选择已创建的 Pool</div>
     </div>
     <div class="mb-16">
       <label style="display:block;margin-bottom:6px;font-size:14px;color:rgba(255,255,255,0.7);">流量阈值（GB，0=不限制）</label>
@@ -270,41 +289,106 @@
 let hostSaveInProgress = false;
 let ddnsRules = [];
 let ddnsRuleStatuses = {};
+let poolList = [];
 
-function initHostPoolFilter() {
-  const select = document.getElementById('host-pool-filter');
-  if (!select) return;
-
+function calcNextPriorityForPool(pool) {
   const rows = Array.from(document.querySelectorAll('tr.host-row'));
-  const pools = [];
-  const seen = new Set();
+  let maxPriority = 0;
   rows.forEach(row => {
-    const pool = (row.getAttribute('data-pool') || '').trim();
-    if (!pool) return;
-    if (!seen.has(pool)) {
-      seen.add(pool);
-      pools.push(pool);
+    const p = (row.getAttribute('data-pool') || '').trim();
+    if (p !== String(pool || '').trim()) return;
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+      const v = parseInt((cells[4].textContent || '').trim(), 10);
+      if (Number.isFinite(v) && v > maxPriority) maxPriority = v;
     }
   });
+  return maxPriority + 1;
+}
 
+function renderPoolOptions(selectId, selected = '') {
+  const select = document.getElementById(selectId);
+  if (!select) return;
   select.innerHTML = '';
-  if (pools.length === 0) {
+  if (!Array.isArray(poolList) || poolList.length === 0) {
     const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = '无 Pool';
+    opt.value = 'default';
+    opt.textContent = 'default';
     select.appendChild(opt);
-    applyHostPoolFilter();
+    select.value = 'default';
     return;
   }
-
-  pools.forEach(pool => {
+  poolList.forEach(p => {
+    const name = String((p && p.name) || '').trim();
+    if (!name) return;
     const opt = document.createElement('option');
-    opt.value = pool;
-    opt.textContent = pool;
+    opt.value = name;
+    opt.textContent = name;
     select.appendChild(opt);
   });
+  const candidate = selected && Array.from(select.options).some(o => o.value === selected) ? selected : select.options[0].value;
+  select.value = candidate;
+}
 
-  select.value = pools[0];
+function renderPoolTable() {
+  const tbody = document.getElementById('pool-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (!Array.isArray(poolList) || poolList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-table-cell">暂无 Pool</td></tr>';
+    return;
+  }
+  poolList.forEach(p => {
+    const tr = document.createElement('tr');
+    const disabled = Number(p.host_count || 0) > 0 || String(p.name) === 'default';
+    tr.innerHTML = `
+      <td>${escapeHtml(p.name)}</td>
+      <td>${Number(p.host_count || 0)}</td>
+      <td>
+        <button class="btn btn-danger btn-sm" type="button" ${disabled ? 'disabled' : ''} onclick="deletePool('${escapeHtml(p.name)}')">删除</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function loadPools() {
+  const resp = await fetch('/api/pools');
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || '加载 Pool 失败');
+  poolList = Array.isArray(data) ? data : [];
+  renderPoolTable();
+  renderPoolOptions('host-pool-filter');
+  renderPoolOptions('host-pool');
+  applyHostPoolFilter();
+}
+
+async function createPool() {
+  const input = document.getElementById('new-pool-name');
+  const name = (input && input.value ? input.value : '').trim();
+  if (!name) return alert('请输入 Pool 名称');
+  const resp = await fetch('/api/pools', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name })
+  });
+  const data = await resp.json();
+  if (!resp.ok) return alert('创建失败: ' + (data.error || ''));
+  if (input) input.value = '';
+  await loadPools();
+  alert('Pool 创建成功');
+}
+
+async function deletePool(name) {
+  if (!confirm('确认删除 Pool ' + name + '？')) return;
+  const resp = await fetch('/api/pools/' + encodeURIComponent(name), { method: 'DELETE' });
+  const data = await resp.json();
+  if (!resp.ok) return alert('删除失败: ' + (data.error || ''));
+  await loadPools();
+}
+
+function initHostPoolFilter() {
+  renderPoolOptions('host-pool-filter');
   applyHostPoolFilter();
 }
 
@@ -462,8 +546,10 @@ function openAddHostModal() {
   document.getElementById('host-ssh-port').value = '22';
   document.getElementById('host-ssh-user').value = '';
   document.getElementById('host-ssh-password').value = '';
-  document.getElementById('host-priority').value = '1';
-  document.getElementById('host-pool').value = 'default';
+  const filterPool = (document.getElementById('host-pool-filter') || {}).value || '';
+  renderPoolOptions('host-pool', filterPool);
+  const selectedPool = (document.getElementById('host-pool') || {}).value || 'default';
+  document.getElementById('host-priority').value = String(calcNextPriorityForPool(selectedPool));
   document.getElementById('host-traffic-threshold').value = '0';
   document.getElementById('host-pre-command').value = '';
   const templateEl = document.querySelector('#command-template-form [name="default_disconnect_command_template"]');
@@ -476,6 +562,15 @@ function openAddHostModal() {
   hostSaveInProgress = false;
   updateHostInstallNowButtonVisibility();
   document.getElementById('host-modal').classList.add('active');
+}
+
+const hostPoolSelect = document.getElementById('host-pool');
+if (hostPoolSelect) {
+  hostPoolSelect.addEventListener('change', () => {
+    const p = hostPoolSelect.value || 'default';
+    const next = calcNextPriorityForPool(p);
+    document.getElementById('host-priority').value = String(next);
+  });
 }
 
 function closeHostModal(force = false) {
@@ -499,7 +594,7 @@ async function editHost(id) {
   document.getElementById('host-ssh-user').value = h.ssh_user;
   document.getElementById('host-ssh-password').value = '';
   document.getElementById('host-priority').value = h.priority;
-  document.getElementById('host-pool').value = h.pool;
+  renderPoolOptions('host-pool', h.pool);
   document.getElementById('host-traffic-threshold').value = ((Number(h.traffic_threshold) || 0) / (1024 ** 3)).toFixed(2).replace(/\.00$/, '');
   document.getElementById('host-pre-command').value = h.pre_command;
   document.getElementById('host-disconnect-command').value = h.disconnect_command || '';
@@ -918,7 +1013,14 @@ async function changePassword() {
   else { msgEl.style.color='#f87171'; msgEl.textContent = data.error || '修改失败'; }
 }
 
-initDDNSRules();
-initHostPoolFilter();
+(async () => {
+  try {
+    await loadPools();
+  } catch (e) {
+    console.error(e);
+  }
+  initHostPoolFilter();
+  initDDNSRules();
+})();
 </script>
 {{end}}
