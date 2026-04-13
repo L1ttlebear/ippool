@@ -94,6 +94,7 @@
           <td>{{.Priority}}</td>
           <td>{{.Pool}}</td>
           <td>
+            <button class="btn btn-sm" onclick="installHostAgentFromList({{.ID}}, '{{.Name}}')">安装 Agent</button>
             <button class="btn btn-sm btn-primary" onclick="editHost({{.ID}})">编辑</button>
             <button class="btn btn-sm btn-danger" onclick="deleteHost({{.ID}}, '{{.Name}}')">删除</button>
           </td>
@@ -681,6 +682,36 @@ async function saveHost() {
   }
 }
 
+async function installHostAgentById(id, serverURL = '', options = {}) {
+  const targetId = String(id || '').trim();
+  if (!targetId) {
+    throw new Error('缺少主机 ID');
+  }
+
+  const body = {
+    agent_server_url: serverURL || '',
+    agent_interval_seconds: 30,
+  };
+
+  const resp = await fetch('/api/hosts/' + targetId + '/install-agent', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+
+  const task = data.agent_install_task || {};
+  const taskId = task.task_id;
+  if (!resp.ok || !taskId) {
+    throw new Error(data.error || 'Agent 安装任务创建失败');
+  }
+
+  hostInstallLastLogCount = 0;
+  setHostInstallProgress(true, task.step || '正在安装 Agent...', Number(task.progress) || 5);
+  appendHostInstallLog(['安装任务已创建：' + taskId]);
+  await pollHostInstallTask(taskId, !!options.onSuccessReload);
+}
+
 async function installHostAgentNow() {
   const id = document.getElementById('host-id').value;
   if (!id) {
@@ -692,36 +723,11 @@ async function installHostAgentNow() {
   errEl.style.display = 'none';
   errEl.textContent = '';
 
-  const body = {
-    agent_server_url: document.getElementById('host-agent-server-url').value,
-    agent_interval_seconds: 30,
-  };
-
   try {
     hostSaveInProgress = true;
     setHostModalButtonsDisabled(true);
     setHostInstallProgress(true, '正在连接主机并安装 Agent，请稍候...', null);
-
-    const resp = await fetch('/api/hosts/' + id + '/install-agent', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    const data = await resp.json();
-
-    const task = data.agent_install_task || {};
-    const taskId = task.task_id;
-    if (!resp.ok || !taskId) {
-      setHostInstallProgress(true, 'Agent 安装任务创建失败', 100);
-      errEl.textContent = data.error || 'Agent 安装任务创建失败';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    hostInstallLastLogCount = 0;
-    setHostInstallProgress(true, task.step || '正在安装 Agent...', Number(task.progress) || 5);
-    appendHostInstallLog(['安装任务已创建：' + taskId]);
-    await pollHostInstallTask(taskId, false);
+    await installHostAgentById(id, document.getElementById('host-agent-server-url').value, { onSuccessReload: false });
   } catch (e) {
     setHostInstallProgress(true, 'Agent 安装失败，请稍后重试', 100);
     errEl.textContent = (e && e.message) ? e.message : '请求失败，请检查网络或服务状态';
@@ -729,6 +735,43 @@ async function installHostAgentNow() {
   } finally {
     hostSaveInProgress = false;
     setHostModalButtonsDisabled(false);
+  }
+}
+
+async function installHostAgentFromList(id, name) {
+  if (!confirm('确认在主机 ' + name + ' 上安装 Agent？')) return;
+
+  const modal = document.getElementById('host-modal');
+  const wasActive = modal && modal.classList.contains('active');
+  if (!wasActive && modal) {
+    modal.classList.add('active');
+  }
+
+  const errEl = document.getElementById('host-modal-error');
+  if (errEl) {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  }
+
+  try {
+    hostSaveInProgress = true;
+    setHostModalButtonsDisabled(true);
+    setHostInstallProgress(true, '正在连接主机并安装 Agent，请稍候...', null);
+    await installHostAgentById(id, '', { onSuccessReload: false });
+    alert('Agent 安装完成：' + name);
+  } catch (e) {
+    setHostInstallProgress(true, 'Agent 安装失败，请稍后重试', 100);
+    if (errEl) {
+      errEl.textContent = (e && e.message) ? e.message : '请求失败，请检查网络或服务状态';
+      errEl.style.display = 'block';
+    }
+    alert('Agent 安装失败：' + ((e && e.message) ? e.message : '未知错误'));
+  } finally {
+    hostSaveInProgress = false;
+    setHostModalButtonsDisabled(false);
+    if (!wasActive && modal) {
+      setTimeout(() => closeHostModal(true), 900);
+    }
   }
 }
 
@@ -806,6 +849,21 @@ function renderDDNSRules() {
     const statusClass = st ? (st.ok ? 'ddns-badge ok' : 'ddns-badge fail') : 'ddns-badge pending';
     const statusText = st ? (st.ok ? 'DDNS 成功' : 'DDNS 失败') : '未校验';
     const statusDetail = st ? escapeHtml(st.message || '') : '保存后会自动按 Pool Leader 同步并校验';
+    const currentPool = String(r.pool || '').trim();
+    const poolNames = Array.isArray(poolList)
+      ? poolList.map(p => String((p && p.name) || '').trim()).filter(Boolean)
+      : [];
+    const ddnsPoolOptions = [];
+    if (poolNames.length === 0) {
+      ddnsPoolOptions.push('<option value="default">default</option>');
+    } else {
+      poolNames.forEach(name => {
+        ddnsPoolOptions.push(`<option value="${escapeHtml(name)}" ${name === currentPool ? 'selected' : ''}>${escapeHtml(name)}</option>`);
+      });
+    }
+    if (currentPool && !poolNames.includes(currentPool)) {
+      ddnsPoolOptions.push(`<option value="${escapeHtml(currentPool)}" selected>${escapeHtml(currentPool)}（当前值）</option>`);
+    }
 
     row.innerHTML = `
       <div class="ddns-rule-head mb-8">
@@ -814,7 +872,7 @@ function renderDDNSRules() {
       </div>
       <div class="mb-16">
         <label class="form-label">主机池名（Pool）</label>
-        <input class="form-input" type="text" data-k="pool" data-i="${idx}" value="${escapeHtml(r.pool || '')}" placeholder="例如 default / hk / us">
+        <select class="form-input" data-k="pool" data-i="${idx}">${ddnsPoolOptions.join('')}</select>
       </div>
       <div class="mb-16">
         <label class="form-label">Cloudflare 邮箱（CFUSER）</label>

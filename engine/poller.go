@@ -15,6 +15,13 @@ const (
 	defaultPollInterval = 60 * time.Second
 	minPollInterval     = 10 * time.Second
 	maxElectRetries     = 3
+
+	// hostFailThreshold controls how many consecutive failed heartbeat snapshots
+	// are required before we treat a host as offline/dead.
+	hostFailThreshold = 3
+	// hostRecoverThreshold controls how many consecutive successful heartbeat snapshots
+	// are required before we treat a host as recovered/online.
+	hostRecoverThreshold = 2
 )
 
 // Notifier sends event notifications.
@@ -37,6 +44,10 @@ type Poller struct {
 	notifier Notifier
 	hub      WSHub
 	stopCh   chan struct{}
+
+	// flapping guards for heartbeat-only health input
+	hostFailStreak    map[uint]int
+	hostRecoverStreak map[uint]int
 }
 
 // NewPoller creates a new Poller.
@@ -50,6 +61,9 @@ func NewPoller(sm *StateMachine, hc *HealthChecker, exec *CommandExecutor, ddns 
 		notifier: notifier,
 		hub:      hub,
 		stopCh:   make(chan struct{}),
+
+		hostFailStreak:    make(map[uint]int),
+		hostRecoverStreak: make(map[uint]int),
 	}
 }
 
@@ -120,22 +134,67 @@ func (p *Poller) RunOnce(db *gorm.DB) {
 	for _, h := range hosts {
 		hb, ok := hbMap[h.ID]
 		r := CheckResult{HostID: h.ID}
-		if !ok || time.Since(hb.UpdatedAt) > timeout {
-			r.Reachable = true
-			r.SSHReachable = true
-			r.Error = ""
-			r.SSHError = ""
+
+		// base snapshot from current heartbeat
+		baseReachable := false
+		if !ok {
+			r.Reachable = false
+			r.SSHReachable = false
+			r.Error = "heartbeat missing"
+			r.SSHError = "heartbeat missing"
+		} else if time.Since(hb.UpdatedAt) > timeout {
+			r.Reachable = false
+			r.SSHReachable = false
+			r.Error = fmt.Sprintf("heartbeat timeout: last update %s", hb.UpdatedAt.Format(time.RFC3339))
+			r.SSHError = r.Error
+			r.NetIface = hb.NetIface
+			r.TrafficIn = hb.TrafficIn
+			r.TrafficOut = hb.TrafficOut
 		} else {
-			r.Reachable = hb.NetworkOK && hb.SSHOK
+			baseReachable = hb.NetworkOK && hb.SSHOK
+			r.Reachable = baseReachable
 			r.SSHReachable = hb.SSHOK
 			r.SSHError = hb.Error
 			r.NetIface = hb.NetIface
 			r.TrafficIn = hb.TrafficIn
 			r.TrafficOut = hb.TrafficOut
-			if !r.Reachable && r.Error == "" {
+			if !r.Reachable {
 				r.Error = hb.Error
+				if r.Error == "" {
+					r.Error = "heartbeat reported network/ssh failure"
+				}
 			}
 		}
+
+		// anti-flapping hysteresis: require consecutive failures/recoveries
+		if baseReachable {
+			p.hostRecoverStreak[h.ID]++
+			p.hostFailStreak[h.ID] = 0
+		} else {
+			p.hostFailStreak[h.ID]++
+			p.hostRecoverStreak[h.ID] = 0
+		}
+
+		effectiveReachable := baseReachable
+		switch h.State {
+		case models.StateDead:
+			if baseReachable && p.hostRecoverStreak[h.ID] < hostRecoverThreshold {
+				effectiveReachable = false
+				if r.Error == "" {
+					r.Error = fmt.Sprintf("waiting recovery confirmation (%d/%d)", p.hostRecoverStreak[h.ID], hostRecoverThreshold)
+				}
+			}
+		default:
+			if !baseReachable && p.hostFailStreak[h.ID] < hostFailThreshold {
+				effectiveReachable = true
+				r.Error = ""
+				r.SSHError = ""
+			}
+		}
+
+		r.Reachable = effectiveReachable
+		r.SSHReachable = effectiveReachable
+
 		results = append(results, r)
 		if err := p.sm.ApplyCheckResult(db, h, r); err != nil {
 			slog.Warn("poller: apply check result failed", "host_id", h.ID, "error", err)

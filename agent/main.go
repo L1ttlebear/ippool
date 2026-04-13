@@ -24,6 +24,14 @@ type payload struct {
 	Error       string `json:"error"`
 }
 
+type configResp struct {
+	HostID                uint   `json:"host_id"`
+	HostName              string `json:"host_name"`
+	HeartbeatURL          string `json:"heartbeat_url"`
+	HeartbeatIntervalSecs int    `json:"heartbeat_interval_seconds"`
+	ProbeTarget           string `json:"probe_target"`
+}
+
 func envOr(k, def string) string {
 	v := strings.TrimSpace(os.Getenv(k))
 	if v == "" {
@@ -32,8 +40,12 @@ func envOr(k, def string) string {
 	return v
 }
 
-func probeExternal() (bool, string) {
-	cmd := exec.Command("sh", "-lc", "curl -fsS --max-time 8 https://www.hkt.com/ >/dev/null || wget -q --timeout=8 --tries=1 -O - https://www.hkt.com/ >/dev/null")
+func probeExternal(target string) (bool, string) {
+	t := strings.TrimSpace(target)
+	if t == "" {
+		t = "https://www.hkt.com/"
+	}
+	cmd := exec.Command("sh", "-lc", "curl -fsS --max-time 8 "+shellQuote(t)+" >/dev/null || wget -q --timeout=8 --tries=1 -O - "+shellQuote(t)+" >/dev/null")
 	if err := cmd.Run(); err != nil {
 		return false, err.Error()
 	}
@@ -70,18 +82,54 @@ func netDev() (iface string, in, out int64, err error) {
 	return "", 0, 0, fmt.Errorf("no suitable iface")
 }
 
+func fetchPanelConfig(client *http.Client, server string, token string, hostID uint) (configResp, error) {
+	cfgURL := strings.TrimRight(server, "/") + "/api/agent/config?host_id=" + strconv.FormatUint(uint64(hostID), 10)
+	req, err := http.NewRequest(http.MethodGet, cfgURL, nil)
+	if err != nil {
+		return configResp{}, err
+	}
+	req.Header.Set("X-Agent-Token", token)
+	resp, err := client.Do(req)
+	if err != nil {
+		return configResp{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return configResp{}, fmt.Errorf("config status %d", resp.StatusCode)
+	}
+	var cfg configResp
+	if err := json.NewDecoder(resp.Body).Decode(&cfg); err != nil {
+		return configResp{}, err
+	}
+	if strings.TrimSpace(cfg.HeartbeatURL) == "" {
+		cfg.HeartbeatURL = strings.TrimRight(server, "/") + "/api/agent/heartbeat"
+	}
+	if cfg.HeartbeatIntervalSecs < 5 {
+		cfg.HeartbeatIntervalSecs = 5
+	}
+	if strings.TrimSpace(cfg.ProbeTarget) == "" {
+		cfg.ProbeTarget = "https://www.hkt.com/"
+	}
+	return cfg, nil
+}
+
+func shellQuote(s string) string {
+	s = strings.ReplaceAll(s, "'", "'\\''")
+	return "'" + s + "'"
+}
+
 func main() {
 	server := envOr("AGENT_SERVER", "http://127.0.0.1:8080")
 	token := envOr("AGENT_TOKEN", "")
 	hostIDRaw := envOr("AGENT_HOST_ID", "0")
-	hostName := envOr("AGENT_HOST_NAME", "")
-	intervalRaw := envOr("AGENT_INTERVAL", "15")
+	hostNameFallback := envOr("AGENT_HOST_NAME", "")
+	intervalRaw := envOr("AGENT_INTERVAL", "30")
 
 	hID64, _ := strconv.ParseUint(hostIDRaw, 10, 64)
 	hostID := uint(hID64)
-	intervalSec, _ := strconv.Atoi(intervalRaw)
-	if intervalSec < 5 {
-		intervalSec = 5
+	fallbackInterval, _ := strconv.Atoi(intervalRaw)
+	if fallbackInterval < 5 {
+		fallbackInterval = 5
 	}
 
 	if hostID == 0 || token == "" {
@@ -90,10 +138,22 @@ func main() {
 	}
 
 	client := &http.Client{Timeout: 12 * time.Second}
-	url := strings.TrimRight(server, "/") + "/api/agent/heartbeat"
+	currentHeartbeatURL := strings.TrimRight(server, "/") + "/api/agent/heartbeat"
+	currentHostName := hostNameFallback
+	currentIntervalSec := fallbackInterval
+	currentProbeTarget := "https://www.hkt.com/"
 
 	for {
-		netOK, probeErr := probeExternal()
+		if cfg, err := fetchPanelConfig(client, server, token, hostID); err == nil {
+			currentHeartbeatURL = cfg.HeartbeatURL
+			if strings.TrimSpace(cfg.HostName) != "" {
+				currentHostName = cfg.HostName
+			}
+			currentIntervalSec = cfg.HeartbeatIntervalSecs
+			currentProbeTarget = cfg.ProbeTarget
+		}
+
+		netOK, probeErr := probeExternal(currentProbeTarget)
 		iface, rx, tx, ifaceErr := netDev()
 		errMsg := strings.TrimSpace(strings.Join([]string{probeErr, func() string {
 			if ifaceErr != nil {
@@ -105,22 +165,24 @@ func main() {
 
 		pl := payload{
 			HostID:      hostID,
-			HostName:    hostName,
+			HostName:    currentHostName,
 			NetworkOK:   netOK,
 			SSHOK:       true,
 			NetIface:    iface,
 			TrafficIn:   rx,
 			TrafficOut:  tx,
-			ProbeTarget: "https://www.hkt.com/",
+			ProbeTarget: currentProbeTarget,
 			Error:       errMsg,
 		}
 
-		b, _ := json.Marshal(pl)
-		req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-Agent-Token", token)
-		_, _ = client.Do(req)
+		if b, err := json.Marshal(pl); err == nil {
+			if req, err := http.NewRequest(http.MethodPost, currentHeartbeatURL, bytes.NewReader(b)); err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Agent-Token", token)
+				_, _ = client.Do(req)
+			}
+		}
 
-		time.Sleep(time.Duration(intervalSec) * time.Second)
+		time.Sleep(time.Duration(currentIntervalSec) * time.Second)
 	}
 }

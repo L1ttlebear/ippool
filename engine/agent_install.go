@@ -92,7 +92,24 @@ func (ai *AgentInstaller) InstallWithProgress(host models.Host, serverURL, token
 	SERVER_URL=%s
 	TOKEN=%s
 	INTERVAL=%d
+	PANEL_CFG_URL="$SERVER_URL/api/agent/config?host_id=$HOST_ID"
+	HEARTBEAT_URL="$SERVER_URL/api/agent/heartbeat"
+	PROBE_TARGET="https://www.hkt.com/"
 	while true; do
+	  CFG_JSON=""
+	  if command -v curl >/dev/null 2>&1; then
+	    CFG_JSON=$(curl -sS --max-time 8 "$PANEL_CFG_URL" -H "X-Agent-Token: $TOKEN" || true)
+	  elif command -v wget >/dev/null 2>&1; then
+	    CFG_JSON=$(wget -q -T 8 -O - --header="X-Agent-Token: $TOKEN" "$PANEL_CFG_URL" 2>/dev/null || true)
+	  fi
+	  if [ -n "$CFG_JSON" ]; then
+	    CFG_INTERVAL=$(echo "$CFG_JSON" | sed -n 's/.*"heartbeat_interval_seconds"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -n1)
+	    CFG_URL=$(echo "$CFG_JSON" | sed -n 's/.*"heartbeat_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)
+	    CFG_TARGET=$(echo "$CFG_JSON" | sed -n 's/.*"probe_target"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)
+	    if [ -n "$CFG_INTERVAL" ] && [ "$CFG_INTERVAL" -ge 5 ] 2>/dev/null; then INTERVAL="$CFG_INTERVAL"; fi
+	    if [ -n "$CFG_URL" ]; then HEARTBEAT_URL="$CFG_URL"; fi
+	    if [ -n "$CFG_TARGET" ]; then PROBE_TARGET="$CFG_TARGET"; fi
+	  fi
 	  IFACE=$(awk -F: 'NR>2 {gsub(/ /, "", $1); if ($1 != "lo") {print $1; exit}}' /proc/net/dev)
 	  RX=0
 	  TX=0
@@ -105,19 +122,19 @@ func (ai *AgentInstaller) InstallWithProgress(host models.Host, serverURL, token
 	  fi
 	  NET_OK=false
 	  if command -v curl >/dev/null 2>&1; then
-	    if curl -sS -L --max-time 8 https://www.hkt.com/ >/dev/null 2>&1; then NET_OK=true; fi
+	    if curl -sS -L --max-time 8 "$PROBE_TARGET" >/dev/null 2>&1; then NET_OK=true; fi
 	  elif command -v wget >/dev/null 2>&1; then
-	    if wget -q -T 8 -O /dev/null https://www.hkt.com/ >/dev/null 2>&1; then NET_OK=true; fi
+	    if wget -q -T 8 -O /dev/null "$PROBE_TARGET" >/dev/null 2>&1; then NET_OK=true; fi
 	  fi
 	  SSH_OK=true
 	  PAYLOAD=$(cat <<JSON
-	{"host_id":$HOST_ID,"host_name":"$HOST_NAME","network_ok":$NET_OK,"ssh_ok":$SSH_OK,"net_iface":"$IFACE","traffic_in":$RX,"traffic_out":$TX,"probe_target":"https://www.hkt.com/","error":""}
+	{"host_id":$HOST_ID,"host_name":"$HOST_NAME","network_ok":$NET_OK,"ssh_ok":$SSH_OK,"net_iface":"$IFACE","traffic_in":$RX,"traffic_out":$TX,"probe_target":"$PROBE_TARGET","error":""}
 	JSON
 	)
 	  if command -v curl >/dev/null 2>&1; then
-	    curl -sS -X POST "$SERVER_URL/api/agent/heartbeat" -H "Content-Type: application/json" -H "X-Agent-Token: $TOKEN" -d "$PAYLOAD" >/dev/null 2>&1 || true
+	    curl -sS -X POST "$HEARTBEAT_URL" -H "Content-Type: application/json" -H "X-Agent-Token: $TOKEN" -d "$PAYLOAD" >/dev/null 2>&1 || true
 	  elif command -v wget >/dev/null 2>&1; then
-	    wget -q -O /dev/null --header="Content-Type: application/json" --header="X-Agent-Token: $TOKEN" --post-data="$PAYLOAD" "$SERVER_URL/api/agent/heartbeat" >/dev/null 2>&1 || true
+	    wget -q -O /dev/null --header="Content-Type: application/json" --header="X-Agent-Token: $TOKEN" --post-data="$PAYLOAD" "$HEARTBEAT_URL" >/dev/null 2>&1 || true
 	  fi
 	  sleep "$INTERVAL"
 	done
